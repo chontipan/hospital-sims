@@ -7,7 +7,6 @@
   const TILE_W = 64;
   const TILE_H = 32;
 
-  // Web Audio Synth SFX
   let audioCtx = null;
   let soundEnabled = true;
 
@@ -30,7 +29,7 @@
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
         osc.start(now);
         osc.stop(now + 0.1);
-      } else if (type === 'coin' || type === 'good') {
+      } else if (type === 'good') {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(620, now);
         osc.frequency.setValueAtTime(880, now + 0.08);
@@ -63,33 +62,33 @@
 
   const state = {
     speed: 1,
-    scenario: 'stemi',
-    scenarioLabel: '💓 กู้ชีพหัวใจขาดเลือด (STEMI)',
+    scenario: 'lapchole',
+    scenarioLabel: '🔍 Laparoscopic Cholecystectomy (LC)',
     minutes: 8 * 60,
     safety: 100,
     cured: 0,
     errorsAvoided: 0,
     errorsHappened: 0,
     teamstepps: { leadership: 80, communication: 80, monitoring: 80, support: 80 },
-    selectedStaffId: 'doc1',
+    selectedStaffId: 'surg1',
     hoverTile: null,
     nextPatientTimer: 3.0,
-    tsEventTimer: 11.0,
+    tsEventTimer: 10.0,
     activeTsEvent: null,
     patientCounter: 1,
     targetMarkers: [],
     floatingTexts: [],
   };
 
-  // ER Rooms
+  // OR Rooms
   const ROOMS = [
-    { id: 'triage', name: 'คัดกรอง (ESI Triage)', x1: 0, y1: 0, x2: 5, y2: 4, floor: '#e4f2f7', border: '#a8cedb' },
-    { id: 'resus', name: 'ห้องกู้ชีพ (Resus Bay)', x1: 6, y1: 0, x2: 11, y2: 4, floor: '#fef2f2', border: '#f3b7b7' },
-    { id: 'lab', name: 'ห้องแล็บด่วน (STAT Lab)', x1: 12, y1: 0, x2: 17, y2: 4, floor: '#f2effa', border: '#c5b8e3' },
-    { id: 'corridor', name: 'โถงทางเดิน ER', x1: 0, y1: 5, x2: 17, y2: 7, floor: '#f6f3ec', border: '#d9d1c3' },
-    { id: 'pharmacy', name: 'ห้องยาฉุกเฉิน (ER Pharm)', x1: 0, y1: 8, x2: 5, y2: 13, floor: '#fdf2f6', border: '#e5bacb' },
-    { id: 'radiology', name: 'ห้องเอกซเรย์ / CT Scan', x1: 6, y1: 8, x2: 11, y2: 13, floor: '#eef8f6', border: '#aad9cf' },
-    { id: 'station', name: 'จุดพักทีม (Team Station)', x1: 12, y1: 8, x2: 17, y2: 13, floor: '#fff6e8', border: '#e6c999' },
+    { id: 'preop', name: 'Pre-Op / Sign-In', x1: 0, y1: 0, x2: 5, y2: 4, floor: '#e4f2f7', border: '#a8cedb' },
+    { id: 'or1', name: 'ห้องผ่าตัด (OR-1 GenSx)', x1: 6, y1: 0, x2: 11, y2: 4, floor: '#eaf7f1', border: '#9fd6bc' },
+    { id: 'blood', name: 'ธนาคารเลือด / Patho / ยา', x1: 12, y1: 0, x2: 17, y2: 4, floor: '#f2effa', border: '#c5b8e3' },
+    { id: 'corridor', name: 'โถง Semi-Restricted OR', x1: 0, y1: 5, x2: 17, y2: 7, floor: '#f4f2ec', border: '#d9d1c3' },
+    { id: 'sterile', name: 'Scrub & เตรียมเครื่องมือ', x1: 0, y1: 8, x2: 5, y2: 13, floor: '#eef6fb', border: '#adcce3' },
+    { id: 'pacu', name: 'ห้องพักฟื้น (PACU)', x1: 6, y1: 8, x2: 11, y2: 13, floor: '#fdf2f6', border: '#e5bacb' },
+    { id: 'lounge', name: 'OR Briefing & Lounge', x1: 12, y1: 8, x2: 17, y2: 13, floor: '#fff6e8', border: '#e6c999' },
   ];
 
   const blockedTiles = new Set();
@@ -135,22 +134,23 @@
     return false;
   }
 
-  // Interactive ER Equipment
+  // Interactive OR Equipment
   const OBJECTS = [
-    { id: 'triage_desk', name: 'จุดคัดกรอง ESI', icon: '🩺', gx: 3, gy: 2, standX: 3, standY: 3, patX: 2, patY: 2, color: '#38bdf8', role: 'nurse', actionText: 'คัดกรอง & วัดสัญญาณชีพ' },
-    { id: 'waiting_chair_1', name: 'เตียงรอคัดกรอง', icon: '🪑', gx: 1, gy: 1, standX: 1, standY: 2, color: '#94a3b8', isWaitSeat: true },
-    { id: 'waiting_chair_2', name: 'เตียงรอคัดกรอง', icon: '🪑', gx: 2, gy: 1, standX: 2, standY: 2, color: '#94a3b8', isWaitSeat: true },
-    { id: 'resus_bed', name: 'เตียงกู้ชีพ & ECG', icon: '🫀', gx: 9, gy: 2, standX: 8, standY: 2, patX: 9, patY: 2, color: '#f87171', role: 'doctor', actionText: 'ประเมิน ABC & สั่งการรักษา' },
-    { id: 'lab_machine', name: 'เครื่องตรวจ STAT Lab', icon: '🔬', gx: 15, gy: 2, standX: 14, standY: 2, patX: 15, patY: 3, color: '#a78bfa', role: 'mt', actionText: 'ตรวจเลือด / Troponin ด่วน' },
-    { id: 'pharmacy_counter', name: 'คลังยาฉุกเฉิน', icon: '💊', gx: 2, gy: 11, standX: 2, standY: 10, patX: 3, patY: 10, color: '#f472b6', role: 'pharmacist', actionText: 'Check-Back ยา & ประวัติแพ้ยา' },
-    { id: 'xray_machine', name: 'เครื่อง X-Ray / CT Scan', icon: '🩻', gx: 9, gy: 11, standX: 8, standY: 11, patX: 9, patY: 11, color: '#2dd4bf', role: 'radtech', actionText: 'ถ่ายภาพรังสี / CT ด่วน' },
-    { id: 'coffee_machine', name: 'เครื่องชงกาแฟ', icon: '☕', gx: 15, gy: 9, standX: 15, standY: 10, color: '#b45309', need: 'energy', amount: 38, duration: 3.0, actionText: 'ดื่มกาแฟเติมพลัง' },
+    { id: 'signin_desk', name: 'จุด Sign-In & Site Marking', icon: '📋', gx: 3, gy: 2, standX: 3, standY: 3, patX: 2, patY: 2, color: '#38bdf8', role: 'circulating', actionText: 'ทำ WHO Sign-In & เช็คตำแหน่งผ่าตัด' },
+    { id: 'waiting_bed_1', name: 'เตียงรอ Pre-Op', icon: '🛏️', gx: 1, gy: 1, standX: 1, standY: 2, color: '#94a3b8', isWaitSeat: true },
+    { id: 'waiting_bed_2', name: 'เตียงรอ Pre-Op', icon: '🛏️', gx: 2, gy: 1, standX: 2, standY: 2, color: '#94a3b8', isWaitSeat: true },
+    { id: 'or_table', name: 'เตียงผ่าตัด & Lap Tower', icon: '🔪', gx: 9, gy: 2, standX: 8, standY: 2, patX: 9, patY: 2, color: '#10b981', role: 'surgeon', actionText: 'ผ่าตัด GenSx & Time-Out' },
+    { id: 'anesthesia_machine', name: 'เครื่องดมยาสลบ', icon: '💨', gx: 10, gy: 2, standX: 10, standY: 3, patX: 9, patY: 2, color: '#0ea5e9', role: 'anesthesia', actionText: 'ดมยาสลบ & เฝ้าระวัง Hemodynamics' },
+    { id: 'blood_bank', name: 'คลังเลือด / Patho / Antibiotic', icon: '🩸', gx: 15, gy: 2, standX: 14, standY: 2, patX: 15, patY: 3, color: '#a78bfa', role: 'or_support', actionText: 'เตรียมเลือด PRC / ยาฆ่าเชื้อ / Patho' },
+    { id: 'scrub_table', name: 'โต๊ะ Sterile & นับผ้าก๊อซ', icon: '✂️', gx: 2, gy: 11, standX: 2, standY: 10, patX: 3, patY: 10, color: '#0284c7', role: 'scrub', actionText: 'เตรียมเซ็ตผ่าตัด & Sponge Count' },
+    { id: 'pacu_bed', name: 'เตียงพักฟื้น PACU (Sign-Out)', icon: '💓', gx: 9, gy: 11, standX: 8, standY: 11, patX: 9, patY: 11, color: '#f472b6', role: 'circulating', actionText: 'ทำ Sign-Out & ส่งต่อ PACU' },
+    { id: 'coffee_machine', name: 'เครื่องชงกาแฟ OR', icon: '☕', gx: 15, gy: 9, standX: 15, standY: 10, color: '#b45309', need: 'energy', amount: 38, duration: 3.0, actionText: 'ดื่มกาแฟเติมพลัง' },
     { id: 'snack_fridge', name: 'ตู้ของว่าง', icon: '🥪', gx: 16, gy: 9, standX: 16, standY: 10, color: '#60a5fa', need: 'focus', amount: 40, duration: 3.2, actionText: 'ทานของว่างเพิ่มสมาธิ' },
-    { id: 'sofa', name: 'โซฟาพักทีม', icon: '🛋️', gx: 14, gy: 12, standX: 14, standY: 11, color: '#f59e0b', need: 'calm', amount: 42, duration: 3.8, actionText: 'พักลดความตึงเครียด' },
+    { id: 'sofa', name: 'โซฟาพักทีม OR', icon: '🛋️', gx: 14, gy: 12, standX: 14, standY: 11, color: '#f59e0b', need: 'calm', amount: 42, duration: 3.8, actionText: 'พักคลายเครียดระหว่างเคส' },
   ];
 
   OBJECTS.forEach((o) => {
-    if (!o.isWaitSeat && o.id !== 'resus_bed' && o.id !== 'xray_machine') {
+    if (!o.isWaitSeat && o.id !== 'or_table' && o.id !== 'pacu_bed') {
       blockedTiles.add(`${o.gx},${o.gy}`);
     }
   });
@@ -202,113 +202,109 @@
     return [{ x: endX, y: endY }];
   }
 
-  // 5 ER-VIPE Professions
+  // 5 OR-VIBE Professions for General Surgery
   const staffList = [
     {
-      id: 'nurse1', name: 'พว. ต้นกล้า', role: 'nurse', roleTitle: 'พยาบาล ER', emoji: '🩺',
-      shirt: '#0ea5e9', coat: '#e0f2fe', hair: '#3b2f2f', gx: 3, gy: 3, level: 1, xp: 0,
-      needs: { energy: 90, focus: 88, calm: 90, social: 85 },
-      freeWill: true, state: 'idle', actionLabel: 'พร้อมคัดกรอง ESI', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+      id: 'surg1', name: 'นพ. กวิน (GenSx)', role: 'surgeon', roleTitle: 'ศัลยแพทย์ทั่วไป', emoji: '👨‍⚕️',
+      shirt: '#0f766e', coat: '#ccfbf1', hair: '#1e293b', gx: 8, gy: 3, level: 1, xp: 0,
+      needs: { energy: 88, focus: 92, calm: 86, social: 82 },
+      freeWill: true, state: 'idle', actionLabel: 'พร้อมลงมือผ่าตัด GenSx', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
     },
     {
-      id: 'doc1', name: 'พญ. มินตรา', role: 'doctor', roleTitle: 'แพทย์เวชศาสตร์ฉุกเฉิน', emoji: '👩‍⚕️',
-      shirt: '#ef4444', coat: '#ffffff', hair: '#2c1e1e', gx: 8, gy: 3, level: 1, xp: 0,
-      needs: { energy: 88, focus: 90, calm: 86, social: 82 },
-      freeWill: true, state: 'idle', actionLabel: 'ประจำห้องกู้ชีพ', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+      id: 'anes1', name: 'พญ. ณิชา (Anes)', role: 'anesthesia', roleTitle: 'วิสัญญีแพทย์', emoji: '💨',
+      shirt: '#0284c7', coat: '#e0f2fe', hair: '#3b2f2f', gx: 10, gy: 3, level: 1, xp: 0,
+      needs: { energy: 90, focus: 90, calm: 90, social: 84 },
+      freeWill: true, state: 'idle', actionLabel: 'ดูแล Airway & สัญญาณชีพ', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
     },
     {
-      id: 'pharm1', name: 'ภก. ข้าวฟ่าง', role: 'pharmacist', roleTitle: 'เภสัชกร ER', emoji: '💊',
-      shirt: '#ec4899', coat: '#ffffff', hair: '#5c3a21', gx: 3, gy: 10, level: 1, xp: 0,
+      id: 'scrub1', name: 'พว. ฟ้า (Scrub)', role: 'scrub', roleTitle: 'พยาบาลส่งเครื่องมือ', emoji: '✂️',
+      shirt: '#2563eb', coat: '#dbeafe', hair: '#4b3621', gx: 3, gy: 10, level: 1, xp: 0,
       needs: { energy: 90, focus: 92, calm: 88, social: 80 },
-      freeWill: true, state: 'idle', actionLabel: 'พร้อม Check-Back ยา', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+      freeWill: true, state: 'idle', actionLabel: 'เตรียม Sterile Set & นับก๊อซ', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
     },
     {
-      id: 'rad1', name: 'นรท. ภูมิ', role: 'radtech', roleTitle: 'นักรังสีเทคนิค', emoji: '🩻',
-      shirt: '#14b8a6', coat: '#ccfbf1', hair: '#4b3621', gx: 8, gy: 10, level: 1, xp: 0,
-      needs: { energy: 92, focus: 86, calm: 90, social: 84 },
-      freeWill: true, state: 'idle', actionLabel: 'พร้อม X-Ray / CT Scan', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+      id: 'circ1', name: 'พว. ต้น (Circulating)', role: 'circulating', roleTitle: 'พยาบาลรอบนอก OR', emoji: '📋',
+      shirt: '#db2777', coat: '#fce7f3', hair: '#2c1e1e', gx: 3, gy: 3, level: 1, xp: 0,
+      needs: { energy: 88, focus: 88, calm: 90, social: 86 },
+      freeWill: true, state: 'idle', actionLabel: 'คุม WHO Checklist & ประสานงาน', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
     },
     {
-      id: 'mt1', name: 'ทนพ. เตชินท์', role: 'mt', roleTitle: 'นักเทคนิคการแพทย์', emoji: '🔬',
-      shirt: '#8b5cf6', coat: '#f5f3ff', hair: '#1f2937', gx: 14, gy: 3, level: 1, xp: 0,
-      needs: { energy: 92, focus: 90, calm: 86, social: 78 },
-      freeWill: true, state: 'idle', actionLabel: 'ประจำ STAT Lab', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+      id: 'supp1', name: 'ทนพ. เตชินท์ (Lab/Blood)', role: 'or_support', roleTitle: 'คลังเลือด / Patho / ยา', emoji: '🩸',
+      shirt: '#7c3aed', coat: '#f3e8ff', hair: '#1f2937', gx: 14, gy: 3, level: 1, xp: 0,
+      needs: { energy: 92, focus: 90, calm: 88, social: 78 },
+      freeWill: true, state: 'idle', actionLabel: 'เตรียมเลือด PRC & ชิ้นเนื้อ', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
     },
   ];
 
-  // Scenario Case Pools
+  // GenSx Scenarios
   const SCENARIOS = {
-    stemi: {
-      label: '💓 กู้ชีพหัวใจขาดเลือด (STEMI)',
+    lapchole: {
+      label: '🔍 Laparoscopic Cholecystectomy (LC)',
       spawnRate: 11,
       cases: [
-        { diagnosis: 'STEMI แน่นหน้าอกร้าวไปแขนซ้าย', icon: '🫀', esi: 'red', steps: ['nurse', 'doctor', 'mt', 'pharmacist'], decay: 1.5 },
-        { diagnosis: 'เจ็บหน้าอกสงสัยกล้ามเนื้อหัวใจขาดเลือด', icon: '💓', esi: 'red', steps: ['nurse', 'doctor', 'radtech', 'mt', 'pharmacist'], decay: 1.3 },
-        { diagnosis: 'ใจสั่น ความดันต่ำ (Arrhythmia)', icon: '⚡', esi: 'yellow', steps: ['nurse', 'doctor', 'pharmacist'], decay: 0.9 },
+        { diagnosis: 'Symptomatic Gallstone → Lap Chole', icon: '🔍', esi: 'yellow', steps: ['circulating', 'scrub', 'anesthesia', 'surgeon', 'circulating'], decay: 0.7 },
+        { diagnosis: 'Acute Cholecystitis → Urgent LC', icon: '🩺', esi: 'yellow', steps: ['circulating', 'or_support', 'anesthesia', 'surgeon', 'or_support'], decay: 0.9 },
       ],
     },
-    overcrowded: {
-      label: '🏥 ห้องฉุกเฉินคับคั่ง (Overcrowded ER)',
-      spawnRate: 6.5,
+    exlap: {
+      label: '🚨 Exploratory Laparotomy (PPU / Trauma)',
+      spawnRate: 9.5,
       cases: [
-        { diagnosis: 'หอบเหนื่อยเฉียบพลัน SpO2 88%', icon: '🫁', esi: 'red', steps: ['nurse', 'doctor', 'radtech', 'pharmacist'], decay: 1.5 },
-        { diagnosis: 'ไข้สูง หนาวสั่น สงสัยติดเชื้อในกระแสเลือด', icon: '🤒', esi: 'yellow', steps: ['nurse', 'doctor', 'mt', 'pharmacist'], decay: 1.0 },
-        { diagnosis: 'ปวดท้องเฉียบพลัน', icon: '🤢', esi: 'yellow', steps: ['nurse', 'doctor', 'mt', 'radtech'], decay: 0.9 },
-        { diagnosis: 'แผลถลอก / มีไข้เล็กน้อย', icon: '🩹', esi: 'green', steps: ['nurse', 'doctor', 'pharmacist'], decay: 0.45 },
+        { diagnosis: 'Perforated Peptic Ulcer (PPU) + Shock', icon: '🚨', esi: 'red', steps: ['circulating', 'or_support', 'anesthesia', 'scrub', 'surgeon'], decay: 1.45 },
+        { diagnosis: 'Blunt Abdominal Trauma (Hemoperitoneum)', icon: '🩸', esi: 'red', steps: ['circulating', 'anesthesia', 'or_support', 'surgeon', 'scrub'], decay: 1.55 },
       ],
     },
-    trauma: {
-      label: '🦴 อุบัติเหตุผู้สูงอายุ (Geriatric Trauma)',
+    appendectomy: {
+      label: '🩺 Appendectomy & Strangulated Hernia',
       spawnRate: 10,
       cases: [
-        { diagnosis: 'ผู้สูงอายุหกล้ม ศีรษะกระแทก (กินยา Warfarin)', icon: '🧠', esi: 'red', steps: ['nurse', 'doctor', 'radtech', 'mt', 'pharmacist'], decay: 1.4 },
-        { diagnosis: 'สงสัยกระดูกสะโพกหักจากการล้ม', icon: '🦴', esi: 'yellow', steps: ['nurse', 'doctor', 'radtech', 'pharmacist'], decay: 0.95 },
-        { diagnosis: 'หน้ามืด วูบ หมดสติชั่วคราว', icon: '💫', esi: 'yellow', steps: ['nurse', 'doctor', 'mt', 'pharmacist'], decay: 1.0 },
+        { diagnosis: 'Acute Appendicitis (Pre-op ATB)', icon: '🩺', esi: 'yellow', steps: ['circulating', 'or_support', 'anesthesia', 'surgeon', 'or_support'], decay: 0.85 },
+        { diagnosis: 'Strangulated Inguinal Hernia', icon: '⚠️', esi: 'red', steps: ['circulating', 'anesthesia', 'scrub', 'surgeon', 'circulating'], decay: 1.3 },
       ],
     },
   };
 
-  // TeamSTEPPS Soft Skills Events
+  // WHO Checklist & GenSx Crisis Soft Skills Events
   const TEAMSTEPPS_EVENTS = [
     {
-      title: '📣 Communication: SBAR ส่งต่อเคส',
+      title: '⏱️ WHO Time-Out (ก่อนลงมีด)',
       pillar: 'communication',
-      q: 'พยาบาลคัดกรองพบผู้ป่วยแน่นหน้าอก เหงื่อแตก ความดัน 85/55 mmHg ควรสื่อสารกับแพทย์อย่างไร?',
+      q: 'ศัลยแพทย์กำลังจะลงมีดผ่าตัด LC แต่พยาบาล Circulating ทักว่ายังไม่ได้ให้ Prophylactic Antibiotic ควรทำอย่างไร?',
       options: [
-        { text: 'ใช้ SBAR: รายงานอาการ + สัญญาณชีพ + ประวัติโรคหัวใจทันที', ok: true, msg: 'เยี่ยม! การสื่อสารแบบ SBAR ชัดเจน ทีมกู้ชีพพร้อมทันที (+Communication)' },
-        { text: 'วางแฟ้มไว้ที่โต๊ะ แล้วรอแพทย์เดินมาเปิดอ่านเอง', ok: false, msg: 'ล่าช้า! อาจเกิด Preventable Error ในผู้ป่วยวิกฤต (-Safety)' },
+        { text: 'หยุดรอให้ยาฆ่าเชื้อ + ทำ Time-Out ครบถ้วนก่อนลงมีด', ok: true, msg: 'ถูกต้อง! ลดความเสี่ยงแผลติดเชื้อ (SSI) ได้ตามมาตรฐาน WHO (+Communication)' },
+        { text: 'ลงมีดไปก่อนเลย เดี๋ยวค่อยให้ยาระหว่างผ่าตัด', ok: false, msg: 'ผิดมาตรฐาน WHO Time-Out! เพิ่มความเสี่ยง SSI (-Safety)' },
       ],
     },
     {
-      title: '🤝 Mutual Support: กฎ Two-Challenge / CUS',
+      title: '✂️ Sign-Out: Sponge Count ขาด 1 ผืน!',
       pillar: 'support',
-      q: 'เภสัชกรพบว่าคำสั่งยาละลายลิ่มเลือดมีขนาดสูงเกินเกณฑ์สำหรับผู้ป่วยสูงอายุ ควรทำอย่างไร?',
+      q: 'ขณะกำลังจะเย็บปิดแผล Explore Lap พยาบาล Scrub แจ้งว่า "นับผ้าก๊อซขาด 1 ผืน!" ศัลยแพทย์ควรทำอย่างไร?',
       options: [
-        { text: 'ใช้คำพูด CUS ("กังวลเรื่องความปลอดภัยขนาดยา") ทักท้วงแพทย์ทันที', ok: true, msg: 'สุดยอด! ป้องกัน Human Error เรื่องยาได้สำเร็จ (+Mutual Support & Safety)' },
-        { text: 'จัดยาตามใบสั่งไปก่อน เพราะเกรงใจแพทย์', ok: false, msg: 'อันตราย! ความเกรงใจทำให้เกิด Medication Error ได้!' },
+        { text: '🤝 รับฟังทันที หยุดปิดแผล สำรวจช่องท้อง + สั่ง X-Ray หาจนครบ', ok: true, msg: 'สุดยอด Mutual Support! ป้องกัน Retained Foreign Body ได้ 100% (+Safety)' },
+        { text: 'มั่นใจว่าไม่น่ามีอะไรค้างอยู่ สั่งเย็บปิดแผลต่อ', ok: false, msg: 'อันตรายร้ายแรง! เสี่ยงลืมผ้าก๊อซในช่องท้องผู้ป่วย!' },
       ],
     },
     {
-      title: '👁️ Situation Monitoring: เฝ้าระวัง ER',
+      title: '💨 Intra-op Crisis: BP ตกเหลือ 75/45!',
       pillar: 'monitoring',
-      q: 'ห้องฉุกเฉินเริ่มแน่นมีเคสสีแดง 2 รายพร้อมกัน นักรังสีเทคนิคและแล็บควรปรับตัวอย่างไร?',
+      q: 'ระหว่างเลาะถุงน้ำดี วิสัญญีแพทย์ Call-Out แจ้งว่า "BP 75/45 มีเลือดออกมาก!" ทีมควรตอบสนองอย่างไร?',
       options: [
-        { text: 'Call-Out แจ้งทีมว่าพร้อมรับเคสวิกฤตแบบ STAT (ด่วนพิเศษ) ก่อนเคสสีเขียว', ok: true, msg: 'ดีมาก! Cross-Monitoring ช่วยจัดลำดับทรัพยากรทันกาล (+Monitoring)' },
-        { text: 'ทำตามลำดับคิวก่อน-หลังเหมือนเดิม ไม่ต้องแจ้งใคร', ok: false, msg: 'เคสสีแดงอาจรอผล X-Ray/Lab นานเกิน Golden Period!' },
+        { text: '👁️ หยุดจี้ชั่วคราว กดห้ามเลือด + สั่งขอเลือด PRC ด่วนแบบ Closed-Loop', ok: true, msg: 'เยี่ยม! Situation Monitoring & Closed-Loop ช่วยกู้วิกฤตทันกาล (+Monitoring)' },
+        { text: 'รีบผ่าตัดต่อให้เสร็จเร็วๆ โดยไม่สื่อสารกับวิสัญญี', ok: false, msg: 'เสี่ยง Hemorrhagic Shock รุนแรง!' },
       ],
     },
     {
-      title: '👑 Leadership: มอบหมายบทบาท (Closed-Loop)',
+      title: '👑 Critical View of Safety (CVS)',
       pillar: 'leadership',
-      q: 'ระหว่างกู้ชีพผู้ป่วยหัวใจขาดเลือด มีเสียงสั่งการหลายคนพร้อมกัน แพทย์หัวหน้าทีมควรทำอย่างไร?',
+      q: 'ในการผ่าตัดส่องกล้องถุงน้ำดี (LC) กายวิภาคไม่ชัดเจน (Unclear Anatomy) ศัลยแพทย์ควรสื่อสารกับทีมอย่างไร?',
       options: [
-        { text: 'กำหนดบทบาทชัดเจน + ใช้ Closed-Loop (สั่งชื่อคนรับ + ทวนคำสั่ง)', ok: true, msg: 'ภาวะผู้นำยอดเยี่ยม! ทุกคนรู้หน้าที่ ลดความสับสน (+Leadership)' },
-        { text: 'ตะโกนสั่งรวมๆ ใครว่างก็รีบมาช่วยกันทำ', ok: false, msg: 'เกิดความซ้ำซ้อนและตกหล่นในการกู้ชีพ!' },
+        { text: 'หยุด 5 วินาที (Intra-op Time-Out) ปรึกษาทีม & พิจารณา Bail-out / Convert', ok: true, msg: 'ภาวะผู้นำยอดเยี่ยม! ป้องกัน Bile Duct Injury ได้ (+Leadership)' },
+        { text: 'ตัดท่อที่สงสัยไปเลยเพื่อไม่ให้เสียเวลา OR', ok: false, msg: 'เสี่ยง Common Bile Duct Injury อย่างรุนแรง!' },
       ],
     },
   ];
 
-  const PATIENT_NAMES = ['คุณสมชาย (68 ปี)', 'คุณมานี (54 ปี)', 'คุณปิติ (72 ปี)', 'คุณวิภา (45 ปี)', 'คุณณัฐ (61 ปี)', 'คุณอรุณ (79 ปี)'];
+  const PATIENT_NAMES = ['คุณสมชาย (52 ปี)', 'คุณมานี (46 ปี)', 'คุณปิติ (64 ปี)', 'คุณวิภา (39 ปี)', 'คุณณัฐ (58 ปี)', 'คุณอรุณ (71 ปี)'];
   const patients = [];
 
   function logEvent(text, type = 'info') {
@@ -338,7 +334,7 @@
   }
 
   function spawnPatient() {
-    if (patients.length >= 7) return;
+    if (patients.length >= 6) return;
     const pool = SCENARIOS[state.scenario].cases;
     const tpl = pool[Math.floor(Math.random() * pool.length)];
     const name = PATIENT_NAMES[Math.floor(Math.random() * PATIENT_NAMES.length)];
@@ -366,9 +362,9 @@
     patients.push(p);
     if (p.esi === 'red') {
       playSfx('alert');
-      logEvent(`🚨 [ESI แดง] ${p.name}: ${p.diagnosis}`, 'urgent');
+      logEvent(`🚨 [OR ฉุกเฉิน] ${p.name}: ${p.diagnosis}`, 'urgent');
     } else {
-      logEvent(`${p.name} เข้า ER (${p.diagnosis})`, 'info');
+      logEvent(`${p.name} เข้า Pre-Op (${p.diagnosis})`, 'info');
     }
     updateQueueUI();
   }
@@ -395,7 +391,7 @@
           logEvent(opt.msg, 'good');
         } else {
           addTeamStepps(ev.pillar, -10);
-          state.safety = Math.max(10, state.safety - 8);
+          state.safety = Math.max(10, state.safety - 10);
           state.errorsHappened += 1;
           playSfx('alert');
           logEvent(opt.msg, 'urgent');
@@ -422,9 +418,8 @@
     state.teamstepps = { leadership: 80, communication: 80, monitoring: 80, support: 80 };
     state.nextPatientTimer = 1.5;
     document.getElementById('event-log').innerHTML = '';
-    logEvent(`เริ่มสถานการณ์: ${state.scenarioLabel}`, 'good');
+    logEvent(`เริ่มเคสผ่าตัด GenSx: ${state.scenarioLabel}`, 'good');
     spawnPatient();
-    if (key === 'overcrowded') spawnPatient();
     document.getElementById('scenario-modal').classList.add('hidden');
     updateHUD();
     updateQueueUI();
@@ -435,21 +430,21 @@
     const el = document.getElementById('debrief-content');
     el.innerHTML = `
       <div class="debrief-card">
-        <h4>🛡️ ผลลัพธ์ความปลอดภัยผู้ป่วย</h4>
+        <h4>🛡️ Surgical Safety (ศัลยศาสตร์ทั่วไป)</h4>
         <p style="font-size:13px;line-height:1.7;margin:0;">
-          • Patient Safety Score: <strong>${Math.round(state.safety)}%</strong><br/>
-          • ช่วยชีวิต/รักษาสำเร็จ: <strong>${state.cured} เคส</strong><br/>
-          • ป้องกัน Human Error ได้: <strong style="color:#10b981;">${state.errorsAvoided} ครั้ง</strong><br/>
-          • ความผิดพลาดที่เกิดขึ้น: <strong style="color:#ef4444;">${state.errorsHappened} ครั้ง</strong>
+          • Surgical Safety Score: <strong>${Math.round(state.safety)}%</strong><br/>
+          • ผ่าตัดสำเร็จปลอดภัย: <strong>${state.cured} เคส</strong><br/>
+          • ป้องกัน Never Events (Sponge/Time-Out): <strong style="color:#10b981;">${state.errorsAvoided} ครั้ง</strong><br/>
+          • ความเสี่ยง/ข้อผิดพลาดที่เกิด: <strong style="color:#ef4444;">${state.errorsHappened} ครั้ง</strong>
         </p>
       </div>
       <div class="debrief-card">
-        <h4>🤝 สมรรถนะ TeamSTEPPS (เฉลี่ย ${avgTs}/100)</h4>
+        <h4>🤝 สมรรถนะ TeamSTEPPS ใน OR (เฉลี่ย ${avgTs}/100)</h4>
         <p style="font-size:13px;line-height:1.7;margin:0;">
-          • 👑 Leadership: <strong>${state.teamstepps.leadership}</strong><br/>
-          • 📣 Communication (SBAR): <strong>${state.teamstepps.communication}</strong><br/>
-          • 👁️ Situation Monitoring: <strong>${state.teamstepps.monitoring}</strong><br/>
-          • 🤝 Mutual Support (CUS): <strong>${state.teamstepps.support}</strong>
+          • 👑 Leadership (OR Leader): <strong>${state.teamstepps.leadership}</strong><br/>
+          • 📣 Communication (Time-Out/Closed-Loop): <strong>${state.teamstepps.communication}</strong><br/>
+          • 👁️ Situation Monitoring (Hemodynamics): <strong>${state.teamstepps.monitoring}</strong><br/>
+          • 🤝 Mutual Support (Sponge Count/CUS): <strong>${state.teamstepps.support}</strong>
         </p>
       </div>
     `;
@@ -487,7 +482,6 @@
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
-  // Staff actions
   function commandWalk(staff, tx, ty, label = 'กำลังเดินไป...') {
     staff.path = findPath(staff.gx, staff.gy, tx, ty);
     staff.state = 'walking';
@@ -517,7 +511,7 @@
     staff.targetObject = station;
     staff.path = findPath(staff.gx, staff.gy, station.standX, station.standY);
     staff.state = 'walking_to_treat';
-    staff.actionLabel = `เตรียม${station.actionText} (${patient.name})`;
+    staff.actionLabel = `${station.actionText} (${patient.name})`;
 
     patient.assignedStaffId = staff.id;
     patient.state = 'moving_to_station';
@@ -527,20 +521,20 @@
   }
 
   function triggerTeamHuddle() {
-    const spots = [{ x: 13, y: 9 }, { x: 14, y: 10 }, { x: 13, y: 11 }, { x: 15, y: 11 }, { x: 14, y: 9 }];
+    const spots = [{ x: 8, y: 2 }, { x: 9, y: 3 }, { x: 10, y: 2 }, { x: 7, y: 3 }, { x: 8, y: 4 }];
     staffList.forEach((s, idx) => {
       const spot = spots[idx % spots.length];
       s.path = findPath(s.gx, s.gy, spot.x, spot.y);
       s.state = 'walking_to_huddle';
-      s.actionLabel = 'เดินไป Team Brief / Huddle';
+      s.actionLabel = 'รวมตัวทำ WHO Time-Out';
       s.targetObject = null;
       s.targetPatientId = null;
-      s.bubble = { text: '🤝 SBAR', timer: 3.5 };
+      s.bubble = { text: '⏱️ Time-Out!', timer: 3.5 };
     });
     addTeamStepps('communication', 4);
     addTeamStepps('leadership', 3);
     playSfx('select');
-    logEvent('ทีม ER ประชุม Brief & SBAR ร่วมกัน (+Communication & Leadership)', 'good');
+    logEvent('ทีม OR ทำ WHO Surgical Time-Out ร่วมกัน (+Communication & Leadership)', 'good');
   }
 
   function runStaffAI(staff) {
@@ -559,7 +553,6 @@
       if (sofa) { commandUseObject(staff, sofa); return; }
     }
 
-    // Prioritize ESI Red > Yellow > Green!
     const prioOrder = { red: 0, yellow: 1, green: 2 };
     const candidates = patients
       .filter((p) => (p.state === 'waiting' || p.state === 'walking_to_wait') && !p.assignedStaffId && p.steps[p.stepIndex] === staff.role)
@@ -576,7 +569,7 @@
         staff.path = findPath(staff.gx, staff.gy, Math.round(peer.gx), Math.round(peer.gy));
         staff.state = 'walking_to_chat';
         staff.chatPeerId = peer.id;
-        staff.actionLabel = `เดินไปสื่อสาร SBAR กับ ${peer.name}`;
+        staff.actionLabel = `สื่อสารเคสผ่าตัดกับ ${peer.name}`;
       }
     }
   }
@@ -620,7 +613,7 @@
     }
 
     for (const staff of staffList) {
-      staff.needs.energy = Math.max(5, staff.needs.energy - simDt * 0.38);
+      staff.needs.energy = Math.max(5, staff.needs.energy - simDt * 0.36);
       staff.needs.focus = Math.max(5, staff.needs.focus - simDt * 0.34);
       staff.needs.calm = Math.max(10, staff.needs.calm - simDt * 0.25);
       staff.needs.social = Math.max(10, staff.needs.social - simDt * 0.28);
@@ -636,7 +629,7 @@
       } else if (staff.state === 'walking') {
         if (moveEntityAlongPath(staff, simDt, 3.0 * spdMult)) {
           staff.state = 'idle';
-          staff.actionLabel = 'พร้อมรับคำสั่ง';
+          staff.actionLabel = 'พร้อมปฏิบัติงาน OR';
         }
       } else if (staff.state === 'walking_to_object') {
         if (moveEntityAlongPath(staff, simDt, 3.0 * spdMult)) {
@@ -657,7 +650,7 @@
           }
           staff.state = 'idle';
           staff.targetObject = null;
-          staff.actionLabel = 'พร้อมปฏิบัติงาน';
+          staff.actionLabel = 'พร้อมเข้า OR';
         }
       } else if (staff.state === 'walking_to_treat') {
         if (moveEntityAlongPath(staff, simDt, 3.3 * spdMult)) {
@@ -672,7 +665,7 @@
             pat.state = 'in_treatment';
             pat.bubble = { text: '⏳', timer: staff.workTimer };
           } else {
-            staff.actionLabel = `รอ ${pat.name} เข้าจุด...`;
+            staff.actionLabel = `รอ ${pat.name} เข้าเตียง...`;
           }
         }
       } else if (staff.state === 'treating') {
@@ -688,20 +681,20 @@
 
             if (pat.stepIndex >= pat.steps.length) {
               pat.state = 'leaving';
-              pat.path = findPath(pat.gx, pat.gy, 0, 6);
-              pat.bubble = { text: '💚 ปลอดภัยแล้ว!', timer: 5 };
+              pat.path = findPath(pat.gx, pat.gy, 9, 12);
+              pat.bubble = { text: '💚 Sign-Out ส่ง PACU!', timer: 5 };
               state.cured += 1;
               state.safety = Math.min(100, state.safety + 2);
               addTeamStepps('monitoring', 2);
               playSfx('good');
-              state.floatingTexts.push({ gx: pat.gx, gy: pat.gy, text: '💚 ปลอดภัย!', color: '#10b981', life: 2.0 });
-              logEvent(`ช่วยชีวิต/รักษา ${pat.name} สำเร็จทันเวลา!`, 'good');
+              state.floatingTexts.push({ gx: pat.gx, gy: pat.gy, text: '💚 ผ่าตัดสำเร็จ!', color: '#10b981', life: 2.0 });
+              logEvent(`ผ่าตัด ${pat.name} สำเร็จ! Sponge Count ครบถ้วน → ส่ง PACU`, 'good');
             } else {
               const nextRole = pat.steps[pat.stepIndex];
-              const roleNames = { nurse: 'พยาบาล', doctor: 'แพทย์', mt: 'แล็บ', radtech: 'รังสีเทคนิค', pharmacist: 'เภสัชกร' };
+              const roleNames = { surgeon: 'ศัลยแพทย์', anesthesia: 'วิสัญญี', scrub: 'Scrub', circulating: 'Circulating', or_support: 'เลือด/ยา/Patho' };
               pat.state = 'waiting';
               pat.bubble = { text: `ส่งต่อ ${roleNames[nextRole]}`, timer: 4 };
-              logEvent(`Call-Out: ${staff.name} ส่งต่อ ${pat.name} → ${roleNames[nextRole]}`, 'info');
+              logEvent(`Closed-Loop: ${staff.name} → ${roleNames[nextRole]} (${pat.name})`, 'info');
             }
           }
           staff.state = 'idle';
@@ -713,7 +706,7 @@
       } else if (staff.state === 'walking_to_chat') {
         if (moveEntityAlongPath(staff, simDt, 2.7 * spdMult)) {
           staff.needs.social = Math.min(100, staff.needs.social + 24);
-          staff.bubble = { text: '💬 SBAR!', timer: 3 };
+          staff.bubble = { text: '💬 Closed-Loop!', timer: 3 };
           addTeamStepps('communication', 2);
           addStaffXp(staff, 15);
           const peer = staffList.find((o) => o.id === staff.chatPeerId);
@@ -721,18 +714,18 @@
             peer.needs.social = Math.min(100, peer.needs.social + 20);
             peer.bubble = { text: '💬 รับทราบ!', timer: 3 };
           }
-          state.floatingTexts.push({ gx: staff.gx, gy: staff.gy, text: '📣 +SBAR', color: '#2d9cdb', life: 1.4 });
+          state.floatingTexts.push({ gx: staff.gx, gy: staff.gy, text: '📣 +OR Comms', color: '#2d9cdb', life: 1.4 });
           staff.state = 'idle';
-          staff.actionLabel = 'สื่อสารกับทีมเรียบร้อย';
+          staff.actionLabel = 'สื่อสารกับทีม OR เรียบร้อย';
         }
       } else if (staff.state === 'walking_to_huddle') {
         if (moveEntityAlongPath(staff, simDt, 3.0 * spdMult)) {
           staff.needs.social = Math.min(100, staff.needs.social + 20);
           staff.needs.calm = Math.min(100, staff.needs.calm + 12);
-          staff.bubble = { text: '💡 วางแผนร่วมกัน!', timer: 3.5 };
+          staff.bubble = { text: '✅ Time-Out ครบ!', timer: 3.5 };
           addStaffXp(staff, 20);
           staff.state = 'idle';
-          staff.actionLabel = 'Brief ทีมเสร็จสิ้น';
+          staff.actionLabel = 'พร้อมลงมือผ่าตัด';
         }
       }
     }
@@ -747,12 +740,12 @@
         p.stability -= simDt * p.decay;
         if (p.stability <= 0) {
           p.state = 'leaving';
-          p.path = findPath(p.gx, p.gy, 0, 6);
-          p.bubble = { text: '🚨 ส่งต่อ ICU ด่วน!', timer: 4 };
+          p.path = findPath(p.gx, p.gy, 9, 12);
+          p.bubble = { text: '🚨 ย้าย ICU ด่วน!', timer: 4 };
           state.safety = Math.max(10, state.safety - 10);
           state.errorsHappened += 1;
           playSfx('alert');
-          logEvent(`⚠️ สัญญาณชีพ ${p.name} ทรุดลง! ต้องรีบส่งต่อ ICU (-Safety)`, 'urgent');
+          logEvent(`⚠️ ${p.name} สัญญาณชีพไม่คงที่! ต้องย้าย ICU (-Safety)`, 'urgent');
         }
       }
 
@@ -778,7 +771,6 @@
     }
   }
 
-  // Rendering
   function drawIsoTile(gx, gy, fill, stroke) {
     const p1 = gridToScreen(gx, gy);
     const p2 = gridToScreen(gx + 1, gy);
@@ -877,17 +869,17 @@
     ctx.fill();
     ctx.stroke();
 
+    // OR Surgical Cap for OR staff
     ctx.beginPath();
-    ctx.arc(pos.x, bodyY - 35 * z, 8.5 * z, Math.PI, Math.PI * 2);
-    ctx.fillStyle = ent.hair || '#3a2b25';
+    ctx.arc(pos.x, bodyY - 35 * z, 8.8 * z, Math.PI, Math.PI * 2);
+    ctx.fillStyle = isStaff ? ent.shirt : (ent.hair || '#3a2b25');
     ctx.fill();
 
     ctx.font = `600 ${Math.max(10, Math.round(11 * z))}px Prompt, sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillStyle = isStaff ? '#0f293a' : '#475569';
-    ctx.fillText(ent.name.split(' ')[0], pos.x, pos.y + 16 * z);
+    ctx.fillText(ent.name.split(' ')[0] + (isStaff ? ' ' + (ent.name.split(' ')[1] || '') : ''), pos.x, pos.y + 16 * z);
 
-    // Patient Vital Stability Bar
     if (!isStaff && ent.state !== 'leaving') {
       const bw = 30 * z;
       const bh = 4 * z;
@@ -967,7 +959,7 @@
     ctx.save();
     ctx.font = `600 ${Math.round(12 * camera.zoom)}px Prompt, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(24, 48, 66, 0.45)';
+    ctx.fillStyle = 'rgba(24, 48, 66, 0.48)';
     for (const r of ROOMS) {
       const mid = gridToScreen((r.x1 + r.x2 + 1) / 2, (r.y1 + r.y2 + 1) / 2);
       ctx.fillText(r.name, mid.x, mid.y);
@@ -1000,7 +992,6 @@
     ctx.restore();
   }
 
-  // UI Sync
   function renderRoster() {
     const bar = document.getElementById('staff-roster');
     bar.innerHTML = '';
@@ -1025,10 +1016,10 @@
     const list = document.getElementById('patient-queue-list');
     if (!list) return;
     if (patients.length === 0) {
-      list.innerHTML = '<div style="font-size:12px;color:#64748b;">ยังไม่มีผู้ป่วยรอคิวใน ER...</div>';
+      list.innerHTML = '<div style="font-size:12px;color:#64748b;">ยังไม่มีเคสในตารางผ่าตัด...</div>';
       return;
     }
-    const roleIcons = { nurse: '🩺', doctor: '👩‍⚕️', mt: '🔬', radtech: '🩻', pharmacist: '💊' };
+    const roleIcons = { surgeon: '🔪', anesthesia: '💨', scrub: '✂️', circulating: '📋', or_support: '🩸' };
     list.innerHTML = patients
       .map((p) => {
         const stepsHtml = p.steps
@@ -1064,7 +1055,7 @@
     document.getElementById('stat-safety').textContent = `${Math.round(state.safety)}%`;
     document.getElementById('stat-cured').textContent = `${state.cured} เคส`;
     document.getElementById('stat-teamstepps').textContent = `${avgTs}`;
-    document.getElementById('stat-patients').textContent = `${patients.length} คน`;
+    document.getElementById('stat-patients').textContent = `${patients.length} ราย`;
 
     document.getElementById('ts-lead').textContent = state.teamstepps.leadership;
     document.getElementById('ts-comm').textContent = state.teamstepps.communication;
@@ -1099,16 +1090,16 @@
         b.onclick = () => commandUseObject(staff, station);
         cmds.appendChild(b);
       }
-      const sbarBtn = document.createElement('button');
-      sbarBtn.className = 'quick-cmd-btn';
-      sbarBtn.textContent = '📣 Call-Out / SBAR';
-      sbarBtn.onclick = () => {
-        staff.bubble = { text: '📣 SBAR พร้อม!', timer: 3 };
+      const timeoutBtn = document.createElement('button');
+      timeoutBtn.className = 'quick-cmd-btn';
+      timeoutBtn.textContent = '⏱️ Call-Out / Time-Out';
+      timeoutBtn.onclick = () => {
+        staff.bubble = { text: '⏱️ Time-Out พร้อม!', timer: 3 };
         addTeamStepps('communication', 2);
         playSfx('select');
-        logEvent(`${staff.name} ทำ Call-Out สื่อสารสถานะกับทีม`, 'info');
+        logEvent(`${staff.name} ทำ Call-Out ยืนยันความพร้อม OR`, 'info');
       };
-      cmds.appendChild(sbarBtn);
+      cmds.appendChild(timeoutBtn);
 
       ['coffee_machine', 'sofa'].forEach((oid) => {
         const obj = OBJECTS.find((o) => o.id === oid);
@@ -1123,7 +1114,6 @@
     renderRoster();
   }
 
-  // Input handling
   canvas.addEventListener('mousedown', (e) => {
     camera.dragging = true;
     camera.dragStartX = e.clientX;
@@ -1202,7 +1192,6 @@
     camera.zoom = Math.min(1.8, Math.max(0.55, camera.zoom * factor));
   }, { passive: false });
 
-  // Button listeners
   document.querySelectorAll('.speed-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.speed = Number(btn.dataset.speed);
@@ -1261,7 +1250,7 @@
     requestAnimationFrame(loop);
   }
 
-  logEvent('ยินดีต้อนรับสู่ ER-VIPE Sims! เลือกสถานการณ์เพื่อเริ่มฝึกทีม', 'good');
+  logEvent('ยินดีต้อนรับสู่ OR-VIBE Sims (GenSx)! เลือกเคสผ่าตัดเพื่อเริ่มฝึกทีม', 'good');
   spawnPatient();
   updateHUD();
   requestAnimationFrame(loop);

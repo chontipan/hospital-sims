@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ER-VIPE Sims: เกมจำลองห้องฉุกเฉิน สหวิชาชีพ</title>
+  <title>OR-VIBE Sims: ห้องผ่าตัดจำลอง ศัลยศาสตร์ทั่วไป (GenSx)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -18,39 +18,39 @@
       <div class="brand-badge">
         <span class="plumbob-mini">◆</span>
         <div>
-          <div class="brand-title">ER-VIPE Sims</div>
-          <div class="brand-sub" id="scenario-name-badge">จำลองห้องฉุกเฉินสหวิชาชีพ</div>
+          <div class="brand-title">OR-VIBE Sims (GenSx)</div>
+          <div class="brand-sub" id="scenario-name-badge">ห้องผ่าตัดจำลอง ศัลยศาสตร์ทั่วไป</div>
         </div>
       </div>
 
       <div class="stats-pill">
-        <div class="stat-item" title="ความปลอดภัยผู้ป่วย (Patient Safety)">
+        <div class="stat-item" title="ความปลอดภัยการผ่าตัด (Surgical Safety)">
           <span class="stat-icon">🛡️</span>
           <span>Safety: <strong id="stat-safety">100%</strong></span>
         </div>
-        <div class="stat-item" title="ช่วยชีวิต / รักษาสำเร็จ">
-          <span class="stat-icon">💚</span>
+        <div class="stat-item" title="ผ่าตัดสำเร็จ">
+          <span class="stat-icon">🔪</span>
           <span id="stat-cured">0 เคส</span>
         </div>
         <div class="stat-item" title="คะแนน TeamSTEPPS รวม">
           <span class="stat-icon">🤝</span>
           <span>TeamSTEPPS: <strong id="stat-teamstepps">100</strong></span>
         </div>
-        <div class="stat-item" title="ผู้ป่วยใน ER ตอนนี้">
-          <span class="stat-icon">🚑</span>
-          <span id="stat-patients">0 คน</span>
+        <div class="stat-item" title="ผู้ป่วยในแผนก OR">
+          <span class="stat-icon">🏥</span>
+          <span id="stat-patients">0 ราย</span>
         </div>
       </div>
 
       <div class="top-actions">
-        <button id="btn-scenarios" class="pill-btn">🎬 สถานการณ์</button>
+        <button id="btn-scenarios" class="pill-btn">🎬 เคสผ่าตัด GenSx</button>
         <button id="btn-debrief" class="pill-btn">📊 สรุปผล</button>
         <button id="btn-toggle-sound" class="pill-btn icon-only" title="เปิด/ปิดเสียง">🔊</button>
       </div>
 
       <div class="time-controls">
         <div class="clock-display">
-          <span id="game-shift">เวร ER</span>
+          <span id="game-shift">ตาราง OR</span>
           <span id="game-time">08:00</span>
         </div>
         <div class="speed-buttons">
@@ -62,7 +62,7 @@
       </div>
     </header>
 
-    <!-- TeamSTEPPS 4 Pillars Mini Bar -->
+    <!-- TeamSTEPPS & WHO Checklist Bar -->
     <div class="teamstepps-bar">
       <div class="ts-pill">👑 Leadership: <strong id="ts-lead">80</strong></div>
       <div class="ts-pill">📣 Communication: <strong id="ts-comm">80</strong></div>
@@ -74,8 +74,8 @@
     <aside class="side-panel">
       <div id="teamstepps-card" class="panel-card consult-card hidden">
         <div class="panel-header">
-          <span id="ts-card-title">📣 เหตุการณ์ TeamSTEPPS!</span>
-          <span class="badge-urgent">Soft Skills</span>
+          <span id="ts-card-title">📋 WHO Checklist / OR Crisis!</span>
+          <span class="badge-urgent">GenSx</span>
         </div>
         <div id="ts-card-question" class="consult-question"></div>
         <div id="ts-card-options" class="consult-options"></div>
@@ -83,16 +83,16 @@
 
       <div class="panel-card">
         <div class="panel-header">
-          <span>🚨 คิวคัดกรอง ER (ESI Triage)</span>
-          <button id="btn-spawn-patient" class="mini-action-btn">+ รับเคส ER</button>
+          <span>🔪 ตารางผ่าตัด GenSx (OR Schedule)</span>
+          <button id="btn-spawn-patient" class="mini-action-btn">+ รับเคสผ่าตัด</button>
         </div>
         <div id="patient-queue-list" class="queue-list"></div>
       </div>
 
       <div class="panel-card">
         <div class="panel-header">
-          <span>💬 การสื่อสารในทีม (SBAR / Call-Out)</span>
-          <button id="btn-huddle" class="mini-action-btn" title="เรียกประชุม Brief/Huddle">🤝 Brief ทีม</button>
+          <span>💬 การสื่อสารในห้องผ่าตัด</span>
+          <button id="btn-huddle" class="mini-action-btn" title="เรียกทีมทำ Time-Out / Brief">⏱️ Time-Out</button>
         </div>
         <div id="event-log" class="event-log"></div>
       </div>
@@ -106,26 +106,26 @@
       <div class="modal-box">
         <div class="modal-header">
           <div>
-            <h2>🚑 ER-VIPE Sims: เลือกสถานการณ์ห้องฉุกเฉิน</h2>
-            <p>ฝึกการทำงานเป็นทีม 5 สหวิชาชีพ (แพทย์ • พยาบาล • เภสัชกร • นักรังสีเทคนิค • นักเทคนิคการแพทย์) ตามแนวคิด TeamSTEPPS</p>
+            <h2>🔪 OR-VIBE Sims: ห้องผ่าตัดจำลอง ศัลยศาสตร์ทั่วไป (GenSx)</h2>
+            <p>ฝึกการทำงานร่วมกันของทีมผ่าตัด 5 บทบาท (ศัลยแพทย์ • วิสัญญี • Scrub Nurse • Circulating Nurse • Lab/เลือด/ยา) ตามหลัก WHO Checklist & TeamSTEPPS</p>
           </div>
           <button id="btn-close-scenario" class="close-x">✕</button>
         </div>
         <div class="scenario-grid">
-          <button class="scenario-card" data-scenario="stemi">
-            <div class="sc-badge red">วิกฤตหัวใจ</div>
-            <h3>💓 กู้ชีพผู้ป่วยหัวใจขาดเลือด (STEMI)</h3>
-            <p>แข่งกับเวลา Golden Period! ประสานพยาบาลคัดกรอง แพทย์สั่ง ECG/Lab นักเทคนิคการแพทย์ตรวจ Troponin และเภสัชกรเตรียมยา</p>
+          <button class="scenario-card" data-scenario="lapchole">
+            <div class="sc-badge blue">ส่องกล้อง (MIS)</div>
+            <h3>🔍 Laparoscopic Cholecystectomy</h3>
+            <p>ผ่าตัดถุงน้ำดีผ่านกล้อง เน้น Time-Out ก่อนลงมีด, Critical View of Safety (CVS) และป้องกัน Bile Duct Injury</p>
           </button>
-          <button class="scenario-card" data-scenario="overcrowded">
-            <div class="sc-badge amber">ความดันสูง</div>
-            <h3>🏥 ห้องฉุกเฉินคับคั่ง (Overcrowded ER)</h3>
-            <p>ผู้ป่วยหลั่งไหลเข้ามามาก ทั้งสีแดง-เหลือง-เขียว ต้องจัดลำดับ ESI Triage เฝ้าระวังสัญญาณชีพ และลด Human Error</p>
+          <button class="scenario-card" data-scenario="exlap">
+            <div class="sc-badge red">ฉุกเฉิน (Emergency)</div>
+            <h3>🚨 Exploratory Laparotomy (PPU / Trauma)</h3>
+            <p>เปิดหน้าท้องฉุกเฉิน! ผู้ป่วยเสียเลือด/Shock ต้องประสานวิสัญญีให้เลือดด่วน และนับผ้าก๊อซ (Sponge Count) ให้ครบก่อนปิดแผล</p>
           </button>
-          <button class="scenario-card" data-scenario="trauma">
-            <div class="sc-badge blue">สหวิชาชีพครบทีม</div>
-            <h3>🦴 อุบัติเหตุผู้สูงอายุ (Geriatric Trauma)</h3>
-            <p>ผู้สูงอายุหกล้มศีรษะกระแทก ต้องประสานนักรังสีเทคนิคทำ CT/X-Ray, เช็คยาละลายลิ่มเลือดกับเภสัชกร และตรวจ Lab ด่วน</p>
+          <button class="scenario-card" data-scenario="appendectomy">
+            <div class="sc-badge amber">เร่งด่วน (Urgent)</div>
+            <h3>🩺 Appendectomy & Strangulated Hernia</h3>
+            <p>ผ่าตัดไส้ติ่ง/ไส้เลื่อนติดคา เน้นให้ Pre-op Antibiotic ทันเวลา ส่งชิ้นเนื้อ Patho และ Sign-Out ก่อนส่ง PACU</p>
           </button>
         </div>
       </div>
@@ -136,8 +136,8 @@
       <div class="modal-box">
         <div class="modal-header">
           <div>
-            <h2>📊 สรุปผลการฝึกทีมสหวิชาชีพ (ER-VIPE Debriefing)</h2>
-            <p>ประเมินสมรรถนะ Non-Technical Skills ตามหลัก TeamSTEPPS และความปลอดภัยของผู้ป่วย</p>
+            <h2>📊 สรุปผลการฝึกทีมผ่าตัด (OR-VIBE Debriefing)</h2>
+            <p>ประเมิน Surgical Safety, WHO Checklist และ TeamSTEPPS 4 เสาหลักสำหรับศัลยแพทย์ทั่วไป</p>
           </div>
           <button id="btn-close-debrief" class="close-x">✕</button>
         </div>
@@ -151,8 +151,8 @@
 
       <div class="sim-inspector" id="sim-inspector">
         <div class="sim-avatar-wrap">
-          <div class="sim-avatar" id="selected-avatar">👩‍⚕️</div>
-          <div class="sim-role-tag" id="selected-role">เลือกตัวละคร</div>
+          <div class="sim-avatar" id="selected-avatar">👨‍⚕️</div>
+          <div class="sim-role-tag" id="selected-role">เลือกบุคลากร OR</div>
         </div>
 
         <div class="sim-info">
@@ -161,13 +161,13 @@
               <h2 id="selected-name">คลิกตัวละครเพื่อควบคุม</h2>
               <span id="selected-level" class="level-badge">Lv.1</span>
             </div>
-            <label class="toggle-autonomy" title="ให้ตัวละครเดินและทำงานอัตโนมัติแบบ The Sims">
+            <label class="toggle-autonomy" title="ให้ตัวละครเดินและปฏิบัติงานอัตโนมัติแบบ The Sims">
               <input type="checkbox" id="toggle-freewill" checked />
               <span>อิสระ (Free Will)</span>
             </label>
           </div>
           <div class="sim-action-text" id="selected-action">
-            คลิกตัวละครเพื่อสั่งเดิน ตรวจคนไข้ หรือสื่อสาร SBAR กับทีม
+            คลิกตัวละครเพื่อสั่งเดิน ทำงานใน OR หรือทำ WHO Time-Out
           </div>
           <div class="sim-quick-cmds" id="sim-quick-cmds"></div>
         </div>
