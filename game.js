@@ -2,13 +2,12 @@
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
 
-  // Isometric constants
   const GRID_W = 18;
   const GRID_H = 14;
   const TILE_W = 64;
   const TILE_H = 32;
 
-  // Web Audio Synth (no external audio files required)
+  // Web Audio Synth SFX
   let audioCtx = null;
   let soundEnabled = true;
 
@@ -31,22 +30,14 @@
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
         osc.start(now);
         osc.stop(now + 0.1);
-      } else if (type === 'coin') {
+      } else if (type === 'coin' || type === 'good') {
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(660, now);
-        osc.frequency.setValueAtTime(880, now + 0.07);
+        osc.frequency.setValueAtTime(620, now);
+        osc.frequency.setValueAtTime(880, now + 0.08);
         gain.gain.setValueAtTime(0.1, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
         osc.start(now);
         osc.stop(now + 0.22);
-      } else if (type === 'place') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(340, now);
-        osc.frequency.exponentialRampToValueAtTime(520, now + 0.1);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-        osc.start(now);
-        osc.stop(now + 0.12);
       } else if (type === 'alert') {
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(580, now);
@@ -65,52 +56,40 @@
         osc.start(now);
         osc.stop(now + 0.35);
       }
-    } catch (_) {
-      // Ignore audio errors if blocked by browser policy
-    }
+    } catch (_) {}
   }
 
-  // Camera state
-  const camera = {
-    x: 0,
-    y: 0,
-    zoom: 1,
-    dragging: false,
-    dragStartX: 0,
-    dragStartY: 0,
-    moved: false,
-  };
+  const camera = { x: 0, y: 0, zoom: 1, dragging: false, dragStartX: 0, dragStartY: 0, moved: false };
 
-  // Game state
   const state = {
     speed: 1,
-    day: 1,
+    scenario: 'stemi',
+    scenarioLabel: '💓 กู้ชีพหัวใจขาดเลือด (STEMI)',
     minutes: 8 * 60,
-    money: 12500,
+    safety: 100,
     cured: 0,
-    teamwork: 100,
+    errorsAvoided: 0,
+    errorsHappened: 0,
+    teamstepps: { leadership: 80, communication: 80, monitoring: 80, support: 80 },
     selectedStaffId: 'doc1',
     hoverTile: null,
-    nextPatientTimer: 2.5,
-    consultTimer: 16,
-    activeConsult: null,
+    nextPatientTimer: 3.0,
+    tsEventTimer: 11.0,
+    activeTsEvent: null,
     patientCounter: 1,
-    staffCounter: 10,
-    objCounter: 100,
-    buildItem: null, // currently selected shop item to place
     targetMarkers: [],
     floatingTexts: [],
   };
 
-  // Room definitions
+  // ER Rooms
   const ROOMS = [
-    { id: 'triage', name: 'จุดคัดกรอง', x1: 0, y1: 0, x2: 5, y2: 4, floor: '#e4f2f7', border: '#a8cedb' },
-    { id: 'doctor', name: 'ห้องตรวจแพทย์', x1: 6, y1: 0, x2: 11, y2: 4, floor: '#edf6ee', border: '#add1b2' },
-    { id: 'lab', name: 'ห้องแล็บ (MT)', x1: 12, y1: 0, x2: 17, y2: 4, floor: '#f2effa', border: '#c5b8e3' },
-    { id: 'corridor', name: 'โถงทางเดินกลาง', x1: 0, y1: 5, x2: 17, y2: 7, floor: '#f6f3ec', border: '#d9d1c3' },
-    { id: 'pharmacy', name: 'ห้องจ่ายยา', x1: 0, y1: 8, x2: 5, y2: 13, floor: '#fdf2f6', border: '#e5bacb' },
-    { id: 'rehab', name: 'กายภาพบำบัด (PT)', x1: 6, y1: 8, x2: 11, y2: 13, floor: '#eef8f6', border: '#aad9cf' },
-    { id: 'lounge', name: 'ห้องพักเจ้าหน้าที่', x1: 12, y1: 8, x2: 17, y2: 13, floor: '#fff6e8', border: '#e6c999' },
+    { id: 'triage', name: 'คัดกรอง (ESI Triage)', x1: 0, y1: 0, x2: 5, y2: 4, floor: '#e4f2f7', border: '#a8cedb' },
+    { id: 'resus', name: 'ห้องกู้ชีพ (Resus Bay)', x1: 6, y1: 0, x2: 11, y2: 4, floor: '#fef2f2', border: '#f3b7b7' },
+    { id: 'lab', name: 'ห้องแล็บด่วน (STAT Lab)', x1: 12, y1: 0, x2: 17, y2: 4, floor: '#f2effa', border: '#c5b8e3' },
+    { id: 'corridor', name: 'โถงทางเดิน ER', x1: 0, y1: 5, x2: 17, y2: 7, floor: '#f6f3ec', border: '#d9d1c3' },
+    { id: 'pharmacy', name: 'ห้องยาฉุกเฉิน (ER Pharm)', x1: 0, y1: 8, x2: 5, y2: 13, floor: '#fdf2f6', border: '#e5bacb' },
+    { id: 'radiology', name: 'ห้องเอกซเรย์ / CT Scan', x1: 6, y1: 8, x2: 11, y2: 13, floor: '#eef8f6', border: '#aad9cf' },
+    { id: 'station', name: 'จุดพักทีม (Team Station)', x1: 12, y1: 8, x2: 17, y2: 13, floor: '#fff6e8', border: '#e6c999' },
   ];
 
   const blockedTiles = new Set();
@@ -118,8 +97,10 @@
 
   function buildWalls() {
     for (let y = 0; y <= 4; y++) {
-      if (y !== 2) wallEdges.push({ x1: 6, y1: y, x2: 6, y2: y + 1 });
-      if (y !== 2) wallEdges.push({ x1: 12, y1: y, x2: 12, y2: y + 1 });
+      if (y !== 2) {
+        wallEdges.push({ x1: 6, y1: y, x2: 6, y2: y + 1 });
+        wallEdges.push({ x1: 12, y1: y, x2: 12, y2: y + 1 });
+      }
     }
     for (let x = 0; x < GRID_W; x++) {
       const isDoor = (x >= 2 && x <= 3) || (x >= 8 && x <= 9) || (x >= 14 && x <= 15);
@@ -129,8 +110,10 @@
       }
     }
     for (let y = 8; y <= 13; y++) {
-      if (y !== 10) wallEdges.push({ x1: 6, y1: y, x2: 6, y2: y + 1 });
-      if (y !== 10) wallEdges.push({ x1: 12, y1: y, x2: 12, y2: y + 1 });
+      if (y !== 10) {
+        wallEdges.push({ x1: 6, y1: y, x2: 6, y2: y + 1 });
+        wallEdges.push({ x1: 12, y1: y, x2: 12, y2: y + 1 });
+      }
     }
   }
   buildWalls();
@@ -152,70 +135,40 @@
     return false;
   }
 
-  // Interactive hospital objects
+  // Interactive ER Equipment
   const OBJECTS = [
-    { id: 'triage_desk', name: 'โต๊ะคัดกรอง', icon: '🩺', gx: 3, gy: 2, standX: 3, standY: 3, patX: 2, patY: 2, color: '#38bdf8', room: 'triage', role: 'nurse', actionText: 'คัดกรองผู้ป่วย' },
-    { id: 'waiting_chair_1', name: 'เก้าอี้รอตรวจ', icon: '🪑', gx: 1, gy: 1, standX: 1, standY: 2, color: '#94a3b8', room: 'triage', isWaitSeat: true },
-    { id: 'waiting_chair_2', name: 'เก้าอี้รอตรวจ', icon: '🪑', gx: 2, gy: 1, standX: 2, standY: 2, color: '#94a3b8', room: 'triage', isWaitSeat: true },
-    { id: 'exam_bed', name: 'เตียงตรวจแพทย์', icon: '🛏️', gx: 9, gy: 2, standX: 8, standY: 2, patX: 9, patY: 2, color: '#34d399', room: 'doctor', role: 'doctor', actionText: 'ตรวจวินิจฉัยโรค' },
-    { id: 'lab_machine', name: 'เครื่องตรวจแล็บ', icon: '🔬', gx: 15, gy: 2, standX: 14, standY: 2, patX: 15, patY: 3, color: '#a78bfa', room: 'lab', role: 'mt', actionText: 'วิเคราะห์ผลแล็บ' },
-    { id: 'pharmacy_counter', name: 'เคาน์เตอร์จ่ายยา', icon: '💊', gx: 2, gy: 11, standX: 2, standY: 10, patX: 3, patY: 10, color: '#f472b6', room: 'pharmacy', role: 'pharmacist', actionText: 'จัดและตรวจสอบยา' },
-    { id: 'rehab_mat', name: 'อุปกรณ์กายภาพ', icon: '🏋️', gx: 9, gy: 11, standX: 8, standY: 11, patX: 9, patY: 11, color: '#2dd4bf', room: 'rehab', role: 'pt', actionText: 'ฝึกกายภาพบำบัด' },
-    { id: 'coffee_machine', name: 'เครื่องชงกาแฟ', icon: '☕', gx: 15, gy: 9, standX: 15, standY: 10, color: '#b45309', room: 'lounge', need: 'energy', amount: 38, duration: 3.5, actionText: 'ดื่มกาแฟเติมพลัง' },
-    { id: 'snack_fridge', name: 'ตู้เย็นของว่าง', icon: '🥪', gx: 16, gy: 9, standX: 16, standY: 10, color: '#60a5fa', room: 'lounge', need: 'hunger', amount: 48, duration: 4.0, actionText: 'ทานของว่าง' },
-    { id: 'sofa', name: 'โซฟาพักผ่อน', icon: '🛋️', gx: 14, gy: 12, standX: 14, standY: 11, color: '#f59e0b', room: 'lounge', need: 'mood', amount: 42, duration: 4.5, actionText: 'งีบพักบนโซฟา' },
-    { id: 'plant_1', name: 'ต้นไม้ฟอกอากาศ', icon: '🪴', gx: 7, gy: 6, standX: 7, standY: 5, color: '#4ade80', room: 'corridor', need: 'mood', amount: 15, duration: 2.0, actionText: 'ชื่นชมต้นไม้' },
+    { id: 'triage_desk', name: 'จุดคัดกรอง ESI', icon: '🩺', gx: 3, gy: 2, standX: 3, standY: 3, patX: 2, patY: 2, color: '#38bdf8', role: 'nurse', actionText: 'คัดกรอง & วัดสัญญาณชีพ' },
+    { id: 'waiting_chair_1', name: 'เตียงรอคัดกรอง', icon: '🪑', gx: 1, gy: 1, standX: 1, standY: 2, color: '#94a3b8', isWaitSeat: true },
+    { id: 'waiting_chair_2', name: 'เตียงรอคัดกรอง', icon: '🪑', gx: 2, gy: 1, standX: 2, standY: 2, color: '#94a3b8', isWaitSeat: true },
+    { id: 'resus_bed', name: 'เตียงกู้ชีพ & ECG', icon: '🫀', gx: 9, gy: 2, standX: 8, standY: 2, patX: 9, patY: 2, color: '#f87171', role: 'doctor', actionText: 'ประเมิน ABC & สั่งการรักษา' },
+    { id: 'lab_machine', name: 'เครื่องตรวจ STAT Lab', icon: '🔬', gx: 15, gy: 2, standX: 14, standY: 2, patX: 15, patY: 3, color: '#a78bfa', role: 'mt', actionText: 'ตรวจเลือด / Troponin ด่วน' },
+    { id: 'pharmacy_counter', name: 'คลังยาฉุกเฉิน', icon: '💊', gx: 2, gy: 11, standX: 2, standY: 10, patX: 3, patY: 10, color: '#f472b6', role: 'pharmacist', actionText: 'Check-Back ยา & ประวัติแพ้ยา' },
+    { id: 'xray_machine', name: 'เครื่อง X-Ray / CT Scan', icon: '🩻', gx: 9, gy: 11, standX: 8, standY: 11, patX: 9, patY: 11, color: '#2dd4bf', role: 'radtech', actionText: 'ถ่ายภาพรังสี / CT ด่วน' },
+    { id: 'coffee_machine', name: 'เครื่องชงกาแฟ', icon: '☕', gx: 15, gy: 9, standX: 15, standY: 10, color: '#b45309', need: 'energy', amount: 38, duration: 3.0, actionText: 'ดื่มกาแฟเติมพลัง' },
+    { id: 'snack_fridge', name: 'ตู้ของว่าง', icon: '🥪', gx: 16, gy: 9, standX: 16, standY: 10, color: '#60a5fa', need: 'focus', amount: 40, duration: 3.2, actionText: 'ทานของว่างเพิ่มสมาธิ' },
+    { id: 'sofa', name: 'โซฟาพักทีม', icon: '🛋️', gx: 14, gy: 12, standX: 14, standY: 11, color: '#f59e0b', need: 'calm', amount: 42, duration: 3.8, actionText: 'พักลดความตึงเครียด' },
   ];
 
-  function refreshBlockedTiles() {
-    blockedTiles.clear();
-    OBJECTS.forEach((o) => {
-      if (!o.isWaitSeat && o.id !== 'rehab_mat' && o.id !== 'exam_bed') {
-        blockedTiles.add(`${o.gx},${o.gy}`);
-      }
-    });
-  }
-  refreshBlockedTiles();
+  OBJECTS.forEach((o) => {
+    if (!o.isWaitSeat && o.id !== 'resus_bed' && o.id !== 'xray_machine') {
+      blockedTiles.add(`${o.gx},${o.gy}`);
+    }
+  });
 
-  // Shop catalog
-  const SHOP_CATALOG = [
-    { id: 'plant', name: 'ต้นไม้ฟอกอากาศ', icon: '🪴', price: 250, color: '#4ade80', need: 'mood', amount: 18, duration: 2.0, actionText: 'พักสายตาดูต้นไม้' },
-    { id: 'coffee', name: 'เครื่องชงกาแฟ', icon: '☕', price: 600, color: '#b45309', need: 'energy', amount: 42, duration: 3.0, actionText: 'ดื่มกาแฟเติมพลัง' },
-    { id: 'sofa', name: 'โซฟานุ่มพิเศษ', icon: '🛋️', price: 500, color: '#f59e0b', need: 'mood', amount: 45, duration: 4.0, actionText: 'นั่งพักบนโซฟา' },
-    { id: 'tv', name: 'ทีวีห้องรอตรวจ', icon: '📺', price: 450, color: '#64748b', need: 'mood', amount: 25, duration: 3.0, actionText: 'ดูทีวีผ่อนคลาย' },
-    { id: 'nutrition', name: 'โต๊ะโภชนาการ', icon: '🥗', price: 900, color: '#84cc16', role: 'dietitian', actionText: 'วางแผนโภชนาการ' },
-    { id: 'fridge', name: 'ตู้เย็นของว่าง', icon: '🥪', price: 550, color: '#60a5fa', need: 'hunger', amount: 50, duration: 3.5, actionText: 'ทานของว่าง' },
-  ];
-
-  // Hire catalog
-  const HIRE_CATALOG = [
-    { role: 'nurse', roleTitle: 'พยาบาลวิชาชีพ', emoji: '🩺', price: 1500, shirt: '#0ea5e9', coat: '#e0f2fe', names: ['พว. น้ำฝน', 'พว. ก้องภพ'] },
-    { role: 'doctor', roleTitle: 'แพทย์เวชปฏิบัติ', emoji: '👨‍⚕️', price: 2200, shirt: '#10b981', coat: '#ffffff', names: ['นพ. ภาคิน', 'พญ. ลลิตา'] },
-    { role: 'pharmacist', roleTitle: 'เภสัชกร', emoji: '💊', price: 1800, shirt: '#ec4899', coat: '#ffffff', names: ['ภก. กวิน', 'ภญ. ใบบัว'] },
-    { role: 'pt', roleTitle: 'นักกายภาพบำบัด', emoji: '🦴', price: 1600, shirt: '#14b8a6', coat: '#ccfbf1', names: ['กภ. พิมพ์', 'กภ. ณดล'] },
-    { role: 'mt', roleTitle: 'นักเทคนิคการแพทย์', emoji: '🔬', price: 1700, shirt: '#8b5cf6', coat: '#f5f3ff', names: ['ทนพ. ชนา', 'ทนพ. วิน'] },
-    { role: 'dietitian', roleTitle: 'นักโภชนาการ', emoji: '🥗', price: 1600, shirt: '#84cc16', coat: '#f7fee7', names: ['นภ. มะลิ', 'นภ. อชิ'] },
-  ];
-
-  // A* Pathfinding
   function findPath(sx, sy, tx, ty) {
     const startX = Math.max(0, Math.min(GRID_W - 1, Math.round(sx)));
     const startY = Math.max(0, Math.min(GRID_H - 1, Math.round(sy)));
     const endX = Math.max(0, Math.min(GRID_W - 1, Math.round(tx)));
     const endY = Math.max(0, Math.min(GRID_H - 1, Math.round(ty)));
-
     if (startX === endX && startY === endY) return [];
 
     const open = [{ x: startX, y: startY, g: 0, f: Math.abs(endX - startX) + Math.abs(endY - startY), parent: null }];
     const closed = new Set();
-    const dirs = [
-      [1, 0], [-1, 0], [0, 1], [0, -1],
-      [1, 1], [1, -1], [-1, 1], [-1, -1],
-    ];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    let iter = 0;
 
-    let iterations = 0;
-    while (open.length > 0 && iterations < 600) {
-      iterations++;
+    while (open.length > 0 && iter < 600) {
+      iter++;
       open.sort((a, b) => a.f - b.f);
       const curr = open.shift();
       const key = `${curr.x},${curr.y}`;
@@ -239,104 +192,123 @@
         if (blockedTiles.has(nKey) && !(nx === endX && ny === endY)) continue;
         if (hasWallBetween(curr.x, curr.y, nx, ny)) continue;
 
-        const stepCost = dx !== 0 && dy !== 0 ? 1.414 : 1;
-        const g = curr.g + stepCost;
+        const g = curr.g + (dx !== 0 && dy !== 0 ? 1.414 : 1);
         const h = Math.hypot(endX - nx, endY - ny);
         const existing = open.find((n) => n.x === nx && n.y === ny);
-        if (!existing) {
-          open.push({ x: nx, y: ny, g, f: g + h, parent: curr });
-        } else if (g < existing.g) {
-          existing.g = g;
-          existing.f = g + h;
-          existing.parent = curr;
-        }
+        if (!existing) open.push({ x: nx, y: ny, g, f: g + h, parent: curr });
+        else if (g < existing.g) { existing.g = g; existing.f = g + h; existing.parent = curr; }
       }
     }
     return [{ x: endX, y: endY }];
   }
 
-  // Staff definitions
+  // 5 ER-VIPE Professions
   const staffList = [
     {
-      id: 'nurse1', name: 'พว. ต้นกล้า', role: 'nurse', roleTitle: 'พยาบาลวิชาชีพ', emoji: '🩺',
-      shirt: '#0ea5e9', coat: '#e0f2fe', hair: '#3b2f2f', gx: 3, gy: 3,
-      level: 1, xp: 0,
-      needs: { energy: 88, hunger: 82, mood: 90, social: 85 },
-      freeWill: true, state: 'idle', actionLabel: 'พร้อมคัดกรองผู้ป่วย',
-      path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+      id: 'nurse1', name: 'พว. ต้นกล้า', role: 'nurse', roleTitle: 'พยาบาล ER', emoji: '🩺',
+      shirt: '#0ea5e9', coat: '#e0f2fe', hair: '#3b2f2f', gx: 3, gy: 3, level: 1, xp: 0,
+      needs: { energy: 90, focus: 88, calm: 90, social: 85 },
+      freeWill: true, state: 'idle', actionLabel: 'พร้อมคัดกรอง ESI', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
     },
     {
-      id: 'doc1', name: 'พญ. มินตรา', role: 'doctor', roleTitle: 'แพทย์เวชปฏิบัติ', emoji: '👩‍⚕️',
-      shirt: '#10b981', coat: '#ffffff', hair: '#2c1e1e', gx: 8, gy: 3,
-      level: 1, xp: 0,
-      needs: { energy: 85, hunger: 78, mood: 88, social: 80 },
-      freeWill: true, state: 'idle', actionLabel: 'พร้อมตรวจวินิจฉัย',
-      path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+      id: 'doc1', name: 'พญ. มินตรา', role: 'doctor', roleTitle: 'แพทย์เวชศาสตร์ฉุกเฉิน', emoji: '👩‍⚕️',
+      shirt: '#ef4444', coat: '#ffffff', hair: '#2c1e1e', gx: 8, gy: 3, level: 1, xp: 0,
+      needs: { energy: 88, focus: 90, calm: 86, social: 82 },
+      freeWill: true, state: 'idle', actionLabel: 'ประจำห้องกู้ชีพ', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+    },
+    {
+      id: 'pharm1', name: 'ภก. ข้าวฟ่าง', role: 'pharmacist', roleTitle: 'เภสัชกร ER', emoji: '💊',
+      shirt: '#ec4899', coat: '#ffffff', hair: '#5c3a21', gx: 3, gy: 10, level: 1, xp: 0,
+      needs: { energy: 90, focus: 92, calm: 88, social: 80 },
+      freeWill: true, state: 'idle', actionLabel: 'พร้อม Check-Back ยา', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+    },
+    {
+      id: 'rad1', name: 'นรท. ภูมิ', role: 'radtech', roleTitle: 'นักรังสีเทคนิค', emoji: '🩻',
+      shirt: '#14b8a6', coat: '#ccfbf1', hair: '#4b3621', gx: 8, gy: 10, level: 1, xp: 0,
+      needs: { energy: 92, focus: 86, calm: 90, social: 84 },
+      freeWill: true, state: 'idle', actionLabel: 'พร้อม X-Ray / CT Scan', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
     },
     {
       id: 'mt1', name: 'ทนพ. เตชินท์', role: 'mt', roleTitle: 'นักเทคนิคการแพทย์', emoji: '🔬',
-      shirt: '#8b5cf6', coat: '#f5f3ff', hair: '#1f2937', gx: 14, gy: 3,
-      level: 1, xp: 0,
-      needs: { energy: 92, hunger: 86, mood: 85, social: 75 },
-      freeWill: true, state: 'idle', actionLabel: 'ประจำห้องแล็บ',
-      path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
-    },
-    {
-      id: 'pt1', name: 'กภ. ภูมิ', role: 'pt', roleTitle: 'นักกายภาพบำบัด', emoji: '🦴',
-      shirt: '#14b8a6', coat: '#ccfbf1', hair: '#4b3621', gx: 8, gy: 10,
-      level: 1, xp: 0,
-      needs: { energy: 90, hunger: 80, mood: 92, social: 88 },
-      freeWill: true, state: 'idle', actionLabel: 'พร้อมฝึกกายภาพ',
-      path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
-    },
-    {
-      id: 'pharm1', name: 'ภก. ข้าวฟ่าง', role: 'pharmacist', roleTitle: 'เภสัชกร', emoji: '💊',
-      shirt: '#ec4899', coat: '#ffffff', hair: '#5c3a21', gx: 3, gy: 10,
-      level: 1, xp: 0,
-      needs: { energy: 87, hunger: 84, mood: 89, social: 82 },
-      freeWill: true, state: 'idle', actionLabel: 'พร้อมตรวจสอบและจ่ายยา',
-      path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
+      shirt: '#8b5cf6', coat: '#f5f3ff', hair: '#1f2937', gx: 14, gy: 3, level: 1, xp: 0,
+      needs: { energy: 92, focus: 90, calm: 86, social: 78 },
+      freeWill: true, state: 'idle', actionLabel: 'ประจำ STAT Lab', path: [], bubble: null, workTimer: 0, targetPatientId: null, walkPhase: 0,
     },
   ];
 
-  // Case templates
-  const CASE_TEMPLATES = [
-    { diagnosis: 'ปวดหลังเรื้อรัง / กล้ามเนื้ออักเสบ', icon: '🦴', steps: ['nurse', 'doctor', 'pt', 'pharmacist'], reward: 520 },
-    { diagnosis: 'ไข้สูง / สงสัยติดเชื้อ', icon: '🤒', steps: ['nurse', 'doctor', 'mt', 'pharmacist'], reward: 480 },
-    { diagnosis: 'ข้อเข่าเสื่อม & ตรวจเบาหวาน', icon: '🩺', steps: ['nurse', 'doctor', 'mt', 'pt', 'pharmacist'], reward: 680 },
-    { diagnosis: 'เวียนศีรษะ / ความดันโลหิตสูง', icon: '💓', steps: ['nurse', 'doctor', 'pharmacist'], reward: 390 },
-  ];
+  // Scenario Case Pools
+  const SCENARIOS = {
+    stemi: {
+      label: '💓 กู้ชีพหัวใจขาดเลือด (STEMI)',
+      spawnRate: 11,
+      cases: [
+        { diagnosis: 'STEMI แน่นหน้าอกร้าวไปแขนซ้าย', icon: '🫀', esi: 'red', steps: ['nurse', 'doctor', 'mt', 'pharmacist'], decay: 1.5 },
+        { diagnosis: 'เจ็บหน้าอกสงสัยกล้ามเนื้อหัวใจขาดเลือด', icon: '💓', esi: 'red', steps: ['nurse', 'doctor', 'radtech', 'mt', 'pharmacist'], decay: 1.3 },
+        { diagnosis: 'ใจสั่น ความดันต่ำ (Arrhythmia)', icon: '⚡', esi: 'yellow', steps: ['nurse', 'doctor', 'pharmacist'], decay: 0.9 },
+      ],
+    },
+    overcrowded: {
+      label: '🏥 ห้องฉุกเฉินคับคั่ง (Overcrowded ER)',
+      spawnRate: 6.5,
+      cases: [
+        { diagnosis: 'หอบเหนื่อยเฉียบพลัน SpO2 88%', icon: '🫁', esi: 'red', steps: ['nurse', 'doctor', 'radtech', 'pharmacist'], decay: 1.5 },
+        { diagnosis: 'ไข้สูง หนาวสั่น สงสัยติดเชื้อในกระแสเลือด', icon: '🤒', esi: 'yellow', steps: ['nurse', 'doctor', 'mt', 'pharmacist'], decay: 1.0 },
+        { diagnosis: 'ปวดท้องเฉียบพลัน', icon: '🤢', esi: 'yellow', steps: ['nurse', 'doctor', 'mt', 'radtech'], decay: 0.9 },
+        { diagnosis: 'แผลถลอก / มีไข้เล็กน้อย', icon: '🩹', esi: 'green', steps: ['nurse', 'doctor', 'pharmacist'], decay: 0.45 },
+      ],
+    },
+    trauma: {
+      label: '🦴 อุบัติเหตุผู้สูงอายุ (Geriatric Trauma)',
+      spawnRate: 10,
+      cases: [
+        { diagnosis: 'ผู้สูงอายุหกล้ม ศีรษะกระแทก (กินยา Warfarin)', icon: '🧠', esi: 'red', steps: ['nurse', 'doctor', 'radtech', 'mt', 'pharmacist'], decay: 1.4 },
+        { diagnosis: 'สงสัยกระดูกสะโพกหักจากการล้ม', icon: '🦴', esi: 'yellow', steps: ['nurse', 'doctor', 'radtech', 'pharmacist'], decay: 0.95 },
+        { diagnosis: 'หน้ามืด วูบ หมดสติชั่วคราว', icon: '💫', esi: 'yellow', steps: ['nurse', 'doctor', 'mt', 'pharmacist'], decay: 1.0 },
+      ],
+    },
+  };
 
-  const EMERGENCY_TEMPLATES = [
-    { diagnosis: '🚑 ฉุกเฉิน: แน่นหน้าอกเฉียบพลัน!', icon: '🚑', steps: ['nurse', 'doctor', 'mt', 'pharmacist'], reward: 1250, timeLimit: 42 },
-    { diagnosis: '🚑 ฉุกเฉิน: อุบัติเหตุข้อเท้าพลิก!', icon: '🩹', steps: ['nurse', 'doctor', 'pt', 'pharmacist'], reward: 1100, timeLimit: 45 },
-  ];
-
-  const CONSULT_SCENARIOS = [
+  // TeamSTEPPS Soft Skills Events
+  const TEAMSTEPPS_EVENTS = [
     {
-      q: '💊 เภสัชกรพบว่าคนไข้แพ้ยา Penicillin แต่ใบสั่งยามี Amoxicillin ควรทำอย่างไร?',
+      title: '📣 Communication: SBAR ส่งต่อเคส',
+      pillar: 'communication',
+      q: 'พยาบาลคัดกรองพบผู้ป่วยแน่นหน้าอก เหงื่อแตก ความดัน 85/55 mmHg ควรสื่อสารกับแพทย์อย่างไร?',
       options: [
-        { text: '🤝 ประสานแพทย์ทันทีเพื่อเปลี่ยนกลุ่มยา', correct: true, msg: 'ยอดเยี่ยม! ป้องกันการแพ้ยารุนแรงได้ (+฿350)' },
-        { text: 'ปล่อยผ่านไปก่อน เดี๋ยวค่อยดูอาการ', correct: false, msg: 'อันตราย! คนไข้เสี่ยงแพ้ยา ทีมเวิร์คลดลง' },
+        { text: 'ใช้ SBAR: รายงานอาการ + สัญญาณชีพ + ประวัติโรคหัวใจทันที', ok: true, msg: 'เยี่ยม! การสื่อสารแบบ SBAR ชัดเจน ทีมกู้ชีพพร้อมทันที (+Communication)' },
+        { text: 'วางแฟ้มไว้ที่โต๊ะ แล้วรอแพทย์เดินมาเปิดอ่านเอง', ok: false, msg: 'ล่าช้า! อาจเกิด Preventable Error ในผู้ป่วยวิกฤต (-Safety)' },
       ],
     },
     {
-      q: '🦴 นักกายภาพพบคนไข้เวียนศีรษะมากระหว่างฝึกเดิน ควรทำอย่างไร?',
+      title: '🤝 Mutual Support: กฎ Two-Challenge / CUS',
+      pillar: 'support',
+      q: 'เภสัชกรพบว่าคำสั่งยาละลายลิ่มเลือดมีขนาดสูงเกินเกณฑ์สำหรับผู้ป่วยสูงอายุ ควรทำอย่างไร?',
       options: [
-        { text: 'หยุดฝึก นั่งพัก และเรียกพยาบาลวัดความดัน', correct: true, msg: 'ปลอดภัยไว้ก่อน! ทีมดูแลร่วมกันได้ทันท่วงที (+฿320)' },
-        { text: 'ให้ฝืนเดินต่อให้ครบเวลา', correct: false, msg: 'เสี่ยงหกล้มในโรงพยาบาล!' },
+        { text: 'ใช้คำพูด CUS ("กังวลเรื่องความปลอดภัยขนาดยา") ทักท้วงแพทย์ทันที', ok: true, msg: 'สุดยอด! ป้องกัน Human Error เรื่องยาได้สำเร็จ (+Mutual Support & Safety)' },
+        { text: 'จัดยาตามใบสั่งไปก่อน เพราะเกรงใจแพทย์', ok: false, msg: 'อันตราย! ความเกรงใจทำให้เกิด Medication Error ได้!' },
       ],
     },
     {
-      q: '🔬 ผลแล็บน้ำตาลในเลือดสูงผิดปกติมาก (420 mg/dL) นักเทคนิคการแพทย์ควรทำอย่างไร?',
+      title: '👁️ Situation Monitoring: เฝ้าระวัง ER',
+      pillar: 'monitoring',
+      q: 'ห้องฉุกเฉินเริ่มแน่นมีเคสสีแดง 2 รายพร้อมกัน นักรังสีเทคนิคและแล็บควรปรับตัวอย่างไร?',
       options: [
-        { text: '⚡ โทรแจ้งค่าวิกฤต (Critical Value) ให้แพทย์-พยาบาลทันที', correct: true, msg: 'รวดเร็วมาก! ช่วยรักษาผู้ป่วยได้ทันเวลา (+฿400)' },
-        { text: 'รอส่งใบผลแล็บตามรอบปกติตอนเย็น', correct: false, msg: 'ล่าช้าเกินไปสำหรับค่าวิกฤต!' },
+        { text: 'Call-Out แจ้งทีมว่าพร้อมรับเคสวิกฤตแบบ STAT (ด่วนพิเศษ) ก่อนเคสสีเขียว', ok: true, msg: 'ดีมาก! Cross-Monitoring ช่วยจัดลำดับทรัพยากรทันกาล (+Monitoring)' },
+        { text: 'ทำตามลำดับคิวก่อน-หลังเหมือนเดิม ไม่ต้องแจ้งใคร', ok: false, msg: 'เคสสีแดงอาจรอผล X-Ray/Lab นานเกิน Golden Period!' },
+      ],
+    },
+    {
+      title: '👑 Leadership: มอบหมายบทบาท (Closed-Loop)',
+      pillar: 'leadership',
+      q: 'ระหว่างกู้ชีพผู้ป่วยหัวใจขาดเลือด มีเสียงสั่งการหลายคนพร้อมกัน แพทย์หัวหน้าทีมควรทำอย่างไร?',
+      options: [
+        { text: 'กำหนดบทบาทชัดเจน + ใช้ Closed-Loop (สั่งชื่อคนรับ + ทวนคำสั่ง)', ok: true, msg: 'ภาวะผู้นำยอดเยี่ยม! ทุกคนรู้หน้าที่ ลดความสับสน (+Leadership)' },
+        { text: 'ตะโกนสั่งรวมๆ ใครว่างก็รีบมาช่วยกันทำ', ok: false, msg: 'เกิดความซ้ำซ้อนและตกหล่นในการกู้ชีพ!' },
       ],
     },
   ];
 
-  const PATIENT_NAMES = ['คุณสมชาย', 'คุณมานี', 'คุณปิติ', 'คุณวิภา', 'คุณณัฐ', 'คุณอรุณ', 'คุณพลอย', 'คุณธนา'];
+  const PATIENT_NAMES = ['คุณสมชาย (68 ปี)', 'คุณมานี (54 ปี)', 'คุณปิติ (72 ปี)', 'คุณวิภา (45 ปี)', 'คุณณัฐ (61 ปี)', 'คุณอรุณ (79 ปี)'];
   const patients = [];
 
   function logEvent(text, type = 'info') {
@@ -351,27 +323,24 @@
     while (el.children.length > 25) el.removeChild(el.lastChild);
   }
 
+  function addTeamStepps(pillar, delta) {
+    state.teamstepps[pillar] = Math.max(20, Math.min(100, state.teamstepps[pillar] + delta));
+  }
+
   function addStaffXp(staff, amount) {
     staff.xp += amount;
-    const needed = staff.level * 100;
-    if (staff.xp >= needed) {
-      staff.xp -= needed;
+    if (staff.xp >= staff.level * 100) {
+      staff.xp -= staff.level * 100;
       staff.level += 1;
       playSfx('levelup');
       state.floatingTexts.push({ gx: staff.gx, gy: staff.gy, text: `⭐ Lv.${staff.level}!`, color: '#f59e0b', life: 2.0 });
-      logEvent(`${staff.name} เลื่อนขั้นเป็น Lv.${staff.level} (ทำงานเร็วขึ้น!)`, 'good');
     }
   }
 
-  function spawnPatient(isEmergency = false) {
+  function spawnPatient() {
     if (patients.length >= 7) return;
-    const pool = isEmergency ? EMERGENCY_TEMPLATES : CASE_TEMPLATES;
+    const pool = SCENARIOS[state.scenario].cases;
     const tpl = pool[Math.floor(Math.random() * pool.length)];
-    const steps = [...tpl.steps];
-    // If we have a nutrition station AND a dietitian, 35% chance to include dietitian!
-    if (!isEmergency && OBJECTS.some((o) => o.role === 'dietitian') && staffList.some((s) => s.role === 'dietitian') && Math.random() < 0.45) {
-      steps.splice(steps.length - 1, 0, 'dietitian');
-    }
     const name = PATIENT_NAMES[Math.floor(Math.random() * PATIENT_NAMES.length)];
     const seatIdx = patients.length % 2;
     const waitSeat = seatIdx === 0 ? { x: 1, y: 2 } : { x: 2, y: 2 };
@@ -380,54 +349,58 @@
       name,
       diagnosis: tpl.diagnosis,
       icon: tpl.icon,
-      steps,
+      esi: tpl.esi,
+      steps: [...tpl.steps],
       stepIndex: 0,
-      reward: tpl.reward,
-      isEmergency,
-      emergencyTimer: isEmergency ? tpl.timeLimit : null,
+      stability: 100,
+      decay: tpl.decay,
       gx: 0,
       gy: 6,
       path: findPath(0, 6, waitSeat.x, waitSeat.y),
       state: 'walking_to_wait',
       assignedStaffId: null,
       bubble: { text: tpl.icon, timer: 4 },
-      shirt: isEmergency ? '#ef4444' : ['#fb7185', '#fbbf24', '#60a5fa', '#a78bfa', '#34d399'][Math.floor(Math.random() * 5)],
+      shirt: tpl.esi === 'red' ? '#ef4444' : tpl.esi === 'yellow' ? '#f59e0b' : '#10b981',
       walkPhase: 0,
     };
     patients.push(p);
-    if (isEmergency) {
+    if (p.esi === 'red') {
       playSfx('alert');
-      logEvent(`🚨 เคสฉุกเฉิน! ${p.name} (${p.diagnosis})`, 'urgent');
+      logEvent(`🚨 [ESI แดง] ${p.name}: ${p.diagnosis}`, 'urgent');
     } else {
-      logEvent(`${p.name} เข้ามาตรวจ (${p.diagnosis})`, 'info');
+      logEvent(`${p.name} เข้า ER (${p.diagnosis})`, 'info');
     }
     updateQueueUI();
   }
 
-  function triggerConsult() {
-    if (state.activeConsult) return;
-    const sc = CONSULT_SCENARIOS[Math.floor(Math.random() * CONSULT_SCENARIOS.length)];
-    state.activeConsult = sc;
-    const card = document.getElementById('consult-card');
-    document.getElementById('consult-question').textContent = sc.q;
-    const opts = document.getElementById('consult-options');
+  function triggerTeamSteppsEvent() {
+    if (state.activeTsEvent) return;
+    const ev = TEAMSTEPPS_EVENTS[Math.floor(Math.random() * TEAMSTEPPS_EVENTS.length)];
+    state.activeTsEvent = ev;
+    const card = document.getElementById('teamstepps-card');
+    document.getElementById('ts-card-title').textContent = ev.title;
+    document.getElementById('ts-card-question').textContent = ev.q;
+    const opts = document.getElementById('ts-card-options');
     opts.innerHTML = '';
-    sc.options.forEach((opt) => {
+    ev.options.forEach((opt) => {
       const btn = document.createElement('button');
       btn.className = 'consult-opt-btn';
       btn.textContent = opt.text;
       btn.onclick = () => {
-        if (opt.correct) {
-          state.money += 350;
-          state.teamwork = Math.min(100, state.teamwork + 6);
-          playSfx('coin');
+        if (opt.ok) {
+          addTeamStepps(ev.pillar, 8);
+          state.safety = Math.min(100, state.safety + 4);
+          state.errorsAvoided += 1;
+          playSfx('good');
           logEvent(opt.msg, 'good');
         } else {
-          state.teamwork = Math.max(20, state.teamwork - 8);
+          addTeamStepps(ev.pillar, -10);
+          state.safety = Math.max(10, state.safety - 8);
+          state.errorsHappened += 1;
           playSfx('alert');
-          logEvent(opt.msg, 'warn');
+          logEvent(opt.msg, 'urgent');
         }
-        state.activeConsult = null;
+        state.activeTsEvent = null;
         card.classList.add('hidden');
         updateHUD();
       };
@@ -437,10 +410,56 @@
     playSfx('alert');
   }
 
-  // Coordinate conversions
+  function startScenario(key) {
+    state.scenario = key;
+    state.scenarioLabel = SCENARIOS[key].label;
+    document.getElementById('scenario-name-badge').textContent = state.scenarioLabel;
+    patients.length = 0;
+    state.cured = 0;
+    state.safety = 100;
+    state.errorsAvoided = 0;
+    state.errorsHappened = 0;
+    state.teamstepps = { leadership: 80, communication: 80, monitoring: 80, support: 80 };
+    state.nextPatientTimer = 1.5;
+    document.getElementById('event-log').innerHTML = '';
+    logEvent(`เริ่มสถานการณ์: ${state.scenarioLabel}`, 'good');
+    spawnPatient();
+    if (key === 'overcrowded') spawnPatient();
+    document.getElementById('scenario-modal').classList.add('hidden');
+    updateHUD();
+    updateQueueUI();
+  }
+
+  function openDebrief() {
+    const avgTs = Math.round((state.teamstepps.leadership + state.teamstepps.communication + state.teamstepps.monitoring + state.teamstepps.support) / 4);
+    const el = document.getElementById('debrief-content');
+    el.innerHTML = `
+      <div class="debrief-card">
+        <h4>🛡️ ผลลัพธ์ความปลอดภัยผู้ป่วย</h4>
+        <p style="font-size:13px;line-height:1.7;margin:0;">
+          • Patient Safety Score: <strong>${Math.round(state.safety)}%</strong><br/>
+          • ช่วยชีวิต/รักษาสำเร็จ: <strong>${state.cured} เคส</strong><br/>
+          • ป้องกัน Human Error ได้: <strong style="color:#10b981;">${state.errorsAvoided} ครั้ง</strong><br/>
+          • ความผิดพลาดที่เกิดขึ้น: <strong style="color:#ef4444;">${state.errorsHappened} ครั้ง</strong>
+        </p>
+      </div>
+      <div class="debrief-card">
+        <h4>🤝 สมรรถนะ TeamSTEPPS (เฉลี่ย ${avgTs}/100)</h4>
+        <p style="font-size:13px;line-height:1.7;margin:0;">
+          • 👑 Leadership: <strong>${state.teamstepps.leadership}</strong><br/>
+          • 📣 Communication (SBAR): <strong>${state.teamstepps.communication}</strong><br/>
+          • 👁️ Situation Monitoring: <strong>${state.teamstepps.monitoring}</strong><br/>
+          • 🤝 Mutual Support (CUS): <strong>${state.teamstepps.support}</strong>
+        </p>
+      </div>
+    `;
+    document.getElementById('debrief-modal').classList.remove('hidden');
+  }
+
+  // Iso math
   function gridToScreen(gx, gy) {
     const cx = canvas.width / 2 + camera.x;
-    const cy = canvas.height / 2 + camera.y - 40;
+    const cy = canvas.height / 2 + camera.y - 30;
     const isoX = (gx - gy) * (TILE_W / 2) * camera.zoom;
     const isoY = (gx + gy - (GRID_W + GRID_H) / 2 + 2) * (TILE_H / 2) * camera.zoom;
     return { x: cx + isoX, y: cy + isoY };
@@ -448,7 +467,7 @@
 
   function screenToGrid(sx, sy) {
     const cx = canvas.width / 2 + camera.x;
-    const cy = canvas.height / 2 + camera.y - 40;
+    const cy = canvas.height / 2 + camera.y - 30;
     const dx = (sx - cx) / ((TILE_W / 2) * camera.zoom);
     const dy = (sy - cy) / ((TILE_H / 2) * camera.zoom) + ((GRID_W + GRID_H) / 2 - 2);
     return { gx: (dx + dy) / 2, gy: (dy - dx) / 2 };
@@ -457,7 +476,7 @@
   function centerCamera() {
     camera.x = 0;
     camera.y = 0;
-    camera.zoom = Math.min(1.15, Math.max(0.65, Math.min(canvas.width / 1280, canvas.height / 760)));
+    camera.zoom = Math.min(1.12, Math.max(0.65, Math.min(canvas.width / 1280, canvas.height / 780)));
   }
 
   function resizeCanvas() {
@@ -468,7 +487,7 @@
   window.addEventListener('resize', resizeCanvas);
   resizeCanvas();
 
-  // Commands
+  // Staff actions
   function commandWalk(staff, tx, ty, label = 'กำลังเดินไป...') {
     staff.path = findPath(staff.gx, staff.gy, tx, ty);
     staff.state = 'walking';
@@ -508,73 +527,56 @@
   }
 
   function triggerTeamHuddle() {
-    const spots = [
-      { x: 13, y: 9 }, { x: 14, y: 10 }, { x: 13, y: 11 }, { x: 15, y: 11 }, { x: 14, y: 9 }, { x: 15, y: 10 },
-    ];
+    const spots = [{ x: 13, y: 9 }, { x: 14, y: 10 }, { x: 13, y: 11 }, { x: 15, y: 11 }, { x: 14, y: 9 }];
     staffList.forEach((s, idx) => {
       const spot = spots[idx % spots.length];
       s.path = findPath(s.gx, s.gy, spot.x, spot.y);
       s.state = 'walking_to_huddle';
-      s.actionLabel = 'เดินไปประชุมสหวิชาชีพ';
+      s.actionLabel = 'เดินไป Team Brief / Huddle';
       s.targetObject = null;
       s.targetPatientId = null;
-      s.bubble = { text: '🤝', timer: 3.5 };
+      s.bubble = { text: '🤝 SBAR', timer: 3.5 };
     });
-    state.teamwork = Math.min(100, state.teamwork + 5);
+    addTeamStepps('communication', 4);
+    addTeamStepps('leadership', 3);
     playSfx('select');
-    logEvent('ทีมสหวิชาชีพนัดประชุมปรึกษาเคส (IPE Huddle)', 'good');
+    logEvent('ทีม ER ประชุม Brief & SBAR ร่วมกัน (+Communication & Leadership)', 'good');
   }
 
-  // AI Autonomy
   function runStaffAI(staff) {
     if (!staff.freeWill || staff.state !== 'idle') return;
 
-    if (staff.needs.energy < 30) {
+    if (staff.needs.energy < 28) {
       const coffee = OBJECTS.find((o) => o.need === 'energy');
       if (coffee) { commandUseObject(staff, coffee); return; }
     }
-    if (staff.needs.hunger < 30) {
-      const fridge = OBJECTS.find((o) => o.need === 'hunger');
+    if (staff.needs.focus < 28) {
+      const fridge = OBJECTS.find((o) => o.need === 'focus');
       if (fridge) { commandUseObject(staff, fridge); return; }
     }
-    if (staff.needs.mood < 32) {
-      const sofa = OBJECTS.find((o) => o.need === 'mood');
+    if (staff.needs.calm < 30) {
+      const sofa = OBJECTS.find((o) => o.need === 'calm');
       if (sofa) { commandUseObject(staff, sofa); return; }
     }
 
-    // Prioritize emergency patients!
-    const waitingPat =
-      patients.find((p) => p.isEmergency && (p.state === 'waiting' || p.state === 'walking_to_wait') && !p.assignedStaffId && p.steps[p.stepIndex] === staff.role) ||
-      patients.find((p) => (p.state === 'waiting' || p.state === 'walking_to_wait') && !p.assignedStaffId && p.steps[p.stepIndex] === staff.role);
+    // Prioritize ESI Red > Yellow > Green!
+    const prioOrder = { red: 0, yellow: 1, green: 2 };
+    const candidates = patients
+      .filter((p) => (p.state === 'waiting' || p.state === 'walking_to_wait') && !p.assignedStaffId && p.steps[p.stepIndex] === staff.role)
+      .sort((a, b) => prioOrder[a.esi] - prioOrder[b.esi]);
 
-    if (waitingPat) {
-      assignStaffToPatient(staff, waitingPat);
+    if (candidates.length > 0) {
+      assignStaffToPatient(staff, candidates[0]);
       return;
     }
 
-    if (Math.random() < 0.015) {
-      if (staff.needs.social < 72) {
-        const peer = staffList.find((o) => o.id !== staff.id && o.state === 'idle');
-        if (peer) {
-          staff.path = findPath(staff.gx, staff.gy, Math.round(peer.gx), Math.round(peer.gy));
-          staff.state = 'walking_to_chat';
-          staff.chatPeerId = peer.id;
-          staff.actionLabel = `เดินไปคุยปรึกษากับ ${peer.name}`;
-          return;
-        }
-      }
-      const room = ROOMS.find((r) =>
-        (staff.role === 'nurse' && r.id === 'triage') ||
-        (staff.role === 'doctor' && r.id === 'doctor') ||
-        (staff.role === 'mt' && r.id === 'lab') ||
-        (staff.role === 'pt' && r.id === 'rehab') ||
-        (staff.role === 'pharmacist' && r.id === 'pharmacy') ||
-        (staff.role === 'dietitian' && r.id === 'corridor')
-      );
-      if (room) {
-        const rx = room.x1 + 1 + Math.floor(Math.random() * Math.max(1, room.x2 - room.x1 - 1));
-        const ry = room.y1 + 1 + Math.floor(Math.random() * Math.max(1, room.y2 - room.y1 - 1));
-        if (!blockedTiles.has(`${rx},${ry}`)) commandWalk(staff, rx, ry, 'เดินสำรวจในแผนก');
+    if (Math.random() < 0.015 && staff.needs.social < 74) {
+      const peer = staffList.find((o) => o.id !== staff.id && o.state === 'idle');
+      if (peer) {
+        staff.path = findPath(staff.gx, staff.gy, Math.round(peer.gx), Math.round(peer.gy));
+        staff.state = 'walking_to_chat';
+        staff.chatPeerId = peer.id;
+        staff.actionLabel = `เดินไปสื่อสาร SBAR กับ ${peer.name}`;
       }
     }
   }
@@ -592,43 +594,38 @@
       ent.gy = next.y;
       ent.path.shift();
       return ent.path.length === 0;
-    } else {
-      ent.gx += (dx / dist) * step;
-      ent.gy += (dy / dist) * step;
-      return false;
     }
+    ent.gx += (dx / dist) * step;
+    ent.gy += (dy / dist) * step;
+    return false;
   }
 
   function updateSimulation(dt) {
     if (state.speed === 0) return;
     const simDt = dt * state.speed;
 
-    state.minutes += simDt * 3.5;
-    if (state.minutes >= 24 * 60) {
-      state.minutes -= 24 * 60;
-      state.day += 1;
-    }
+    state.minutes += simDt * 3.2;
+    if (state.minutes >= 24 * 60) state.minutes -= 24 * 60;
 
     state.nextPatientTimer -= simDt;
     if (state.nextPatientTimer <= 0) {
-      spawnPatient(Math.random() < 0.16);
-      state.nextPatientTimer = 9 + Math.random() * 7;
+      spawnPatient();
+      state.nextPatientTimer = SCENARIOS[state.scenario].spawnRate + Math.random() * 4;
     }
 
-    state.consultTimer -= simDt;
-    if (state.consultTimer <= 0) {
-      triggerConsult();
-      state.consultTimer = 26 + Math.random() * 14;
+    state.tsEventTimer -= simDt;
+    if (state.tsEventTimer <= 0) {
+      triggerTeamSteppsEvent();
+      state.tsEventTimer = 18 + Math.random() * 10;
     }
 
     for (const staff of staffList) {
-      staff.needs.energy = Math.max(5, staff.needs.energy - simDt * 0.42);
-      staff.needs.hunger = Math.max(5, staff.needs.hunger - simDt * 0.35);
-      staff.needs.mood = Math.max(10, staff.needs.mood - simDt * 0.22);
+      staff.needs.energy = Math.max(5, staff.needs.energy - simDt * 0.38);
+      staff.needs.focus = Math.max(5, staff.needs.focus - simDt * 0.34);
+      staff.needs.calm = Math.max(10, staff.needs.calm - simDt * 0.25);
       staff.needs.social = Math.max(10, staff.needs.social - simDt * 0.28);
 
       const spdMult = 1 + (staff.level - 1) * 0.12;
-
       if (staff.bubble) {
         staff.bubble.timer -= simDt;
         if (staff.bubble.timer <= 0) staff.bubble = null;
@@ -637,15 +634,15 @@
       if (staff.state === 'idle') {
         runStaffAI(staff);
       } else if (staff.state === 'walking') {
-        if (moveEntityAlongPath(staff, simDt, 2.9 * spdMult)) {
+        if (moveEntityAlongPath(staff, simDt, 3.0 * spdMult)) {
           staff.state = 'idle';
-          staff.actionLabel = 'ยืนพัก / พร้อมทำงาน';
+          staff.actionLabel = 'พร้อมรับคำสั่ง';
         }
       } else if (staff.state === 'walking_to_object') {
-        if (moveEntityAlongPath(staff, simDt, 2.9 * spdMult)) {
+        if (moveEntityAlongPath(staff, simDt, 3.0 * spdMult)) {
           const obj = staff.targetObject;
           staff.state = 'using_object';
-          staff.workTimer = obj.duration || 3.5;
+          staff.workTimer = obj.duration || 3.2;
           staff.actionLabel = obj.actionText;
           staff.bubble = { text: obj.icon, timer: staff.workTimer };
         }
@@ -655,28 +652,27 @@
           const obj = staff.targetObject;
           if (obj && obj.need) {
             staff.needs[obj.need] = Math.min(100, staff.needs[obj.need] + obj.amount);
-            staff.needs.mood = Math.min(100, staff.needs.mood + 10);
+            staff.needs.calm = Math.min(100, staff.needs.calm + 10);
             state.floatingTexts.push({ gx: staff.gx, gy: staff.gy, text: `+${obj.amount} ${obj.icon}`, color: '#10b981', life: 1.5 });
           }
           staff.state = 'idle';
           staff.targetObject = null;
-          staff.actionLabel = 'พร้อมทำงานต่อ';
+          staff.actionLabel = 'พร้อมปฏิบัติงาน';
         }
       } else if (staff.state === 'walking_to_treat') {
-        const arrived = moveEntityAlongPath(staff, simDt, 3.2 * spdMult);
-        if (arrived) {
+        if (moveEntityAlongPath(staff, simDt, 3.3 * spdMult)) {
           const pat = patients.find((p) => p.id === staff.targetPatientId);
           if (!pat) {
             staff.state = 'idle';
           } else if (pat.state === 'in_treatment' || pat.path.length === 0) {
             staff.state = 'treating';
-            staff.workTimer = Math.max(1.8, 3.6 / spdMult);
-            staff.actionLabel = `กำลัง${staff.targetObject.actionText}: ${pat.name}`;
+            staff.workTimer = Math.max(1.8, 3.4 / spdMult);
+            staff.actionLabel = `${staff.targetObject.actionText}: ${pat.name}`;
             staff.bubble = { text: staff.targetObject.icon, timer: staff.workTimer };
             pat.state = 'in_treatment';
             pat.bubble = { text: '⏳', timer: staff.workTimer };
           } else {
-            staff.actionLabel = `รอ ${pat.name} เดินมาถึง...`;
+            staff.actionLabel = `รอ ${pat.name} เข้าจุด...`;
           }
         }
       } else if (staff.state === 'treating') {
@@ -686,58 +682,57 @@
           if (pat) {
             pat.stepIndex += 1;
             pat.assignedStaffId = null;
+            pat.stability = Math.min(100, pat.stability + 15);
             staff.needs.energy = Math.max(5, staff.needs.energy - 4);
-            staff.needs.social = Math.min(100, staff.needs.social + 4);
             addStaffXp(staff, 35);
 
             if (pat.stepIndex >= pat.steps.length) {
               pat.state = 'leaving';
               pat.path = findPath(pat.gx, pat.gy, 0, 6);
-              pat.bubble = { text: '💚 ขอบคุณครับ/ค่ะ!', timer: 5 };
-              const bonus = (staff.level - 1) * 40;
-              const total = pat.reward + bonus;
-              state.money += total;
+              pat.bubble = { text: '💚 ปลอดภัยแล้ว!', timer: 5 };
               state.cured += 1;
-              playSfx('coin');
-              state.floatingTexts.push({ gx: pat.gx, gy: pat.gy, text: `+฿${total} 💚`, color: '#10b981', life: 2.0 });
-              logEvent(`รักษา ${pat.name} สำเร็จ! ทีมสหวิชาชีพได้รับ +฿${total}`, 'good');
+              state.safety = Math.min(100, state.safety + 2);
+              addTeamStepps('monitoring', 2);
+              playSfx('good');
+              state.floatingTexts.push({ gx: pat.gx, gy: pat.gy, text: '💚 ปลอดภัย!', color: '#10b981', life: 2.0 });
+              logEvent(`ช่วยชีวิต/รักษา ${pat.name} สำเร็จทันเวลา!`, 'good');
             } else {
               const nextRole = pat.steps[pat.stepIndex];
-              const roleNames = { nurse: 'พยาบาล', doctor: 'แพทย์', mt: 'แล็บ', pt: 'กายภาพ', pharmacist: 'เภสัชกร', dietitian: 'โภชนาการ' };
+              const roleNames = { nurse: 'พยาบาล', doctor: 'แพทย์', mt: 'แล็บ', radtech: 'รังสีเทคนิค', pharmacist: 'เภสัชกร' };
               pat.state = 'waiting';
-              pat.bubble = { text: `รอ${roleNames[nextRole]}`, timer: 4 };
-              logEvent(`${staff.name} ส่งต่อ ${pat.name} ไปยัง ${roleNames[nextRole]}`, 'info');
+              pat.bubble = { text: `ส่งต่อ ${roleNames[nextRole]}`, timer: 4 };
+              logEvent(`Call-Out: ${staff.name} ส่งต่อ ${pat.name} → ${roleNames[nextRole]}`, 'info');
             }
           }
           staff.state = 'idle';
           staff.targetPatientId = null;
           staff.targetObject = null;
-          staff.actionLabel = 'เสร็จสิ้นภารกิจ';
+          staff.actionLabel = 'เสร็จสิ้นขั้นตอน';
           updateQueueUI();
         }
       } else if (staff.state === 'walking_to_chat') {
-        if (moveEntityAlongPath(staff, simDt, 2.6 * spdMult)) {
-          staff.needs.social = Math.min(100, staff.needs.social + 22);
-          staff.needs.mood = Math.min(100, staff.needs.mood + 10);
-          staff.bubble = { text: '💬 ปรึกษาเคส!', timer: 3 };
+        if (moveEntityAlongPath(staff, simDt, 2.7 * spdMult)) {
+          staff.needs.social = Math.min(100, staff.needs.social + 24);
+          staff.bubble = { text: '💬 SBAR!', timer: 3 };
+          addTeamStepps('communication', 2);
           addStaffXp(staff, 15);
           const peer = staffList.find((o) => o.id === staff.chatPeerId);
           if (peer) {
-            peer.needs.social = Math.min(100, peer.needs.social + 18);
-            peer.bubble = { text: '💬 เห็นด้วยเลย!', timer: 3 };
+            peer.needs.social = Math.min(100, peer.needs.social + 20);
+            peer.bubble = { text: '💬 รับทราบ!', timer: 3 };
           }
-          state.floatingTexts.push({ gx: staff.gx, gy: staff.gy, text: '🤝 +ทีมเวิร์ค', color: '#2d9cdb', life: 1.5 });
+          state.floatingTexts.push({ gx: staff.gx, gy: staff.gy, text: '📣 +SBAR', color: '#2d9cdb', life: 1.4 });
           staff.state = 'idle';
-          staff.actionLabel = 'ปรึกษากับเพื่อนร่วมทีมแล้ว';
+          staff.actionLabel = 'สื่อสารกับทีมเรียบร้อย';
         }
       } else if (staff.state === 'walking_to_huddle') {
         if (moveEntityAlongPath(staff, simDt, 3.0 * spdMult)) {
           staff.needs.social = Math.min(100, staff.needs.social + 20);
-          staff.needs.mood = Math.min(100, staff.needs.mood + 12);
-          staff.bubble = { text: '💡 วางแผนดูแลร่วมกัน!', timer: 3.5 };
+          staff.needs.calm = Math.min(100, staff.needs.calm + 12);
+          staff.bubble = { text: '💡 วางแผนร่วมกัน!', timer: 3.5 };
           addStaffXp(staff, 20);
           staff.state = 'idle';
-          staff.actionLabel = 'ประชุมสหวิชาชีพเสร็จสิ้น';
+          staff.actionLabel = 'Brief ทีมเสร็จสิ้น';
         }
       }
     }
@@ -748,23 +743,25 @@
         p.bubble.timer -= simDt;
         if (p.bubble.timer <= 0) p.bubble = null;
       }
-      if (p.isEmergency && p.state !== 'leaving') {
-        p.emergencyTimer -= simDt;
-        if (p.emergencyTimer <= 0) {
+      if (p.state !== 'leaving' && p.state !== 'in_treatment') {
+        p.stability -= simDt * p.decay;
+        if (p.stability <= 0) {
           p.state = 'leaving';
           p.path = findPath(p.gx, p.gy, 0, 6);
-          p.bubble = { text: '😢 ส่งต่อโรงพยาบาลอื่น', timer: 4 };
-          state.teamwork = Math.max(10, state.teamwork - 10);
-          logEvent(`หมดเวลาเคสฉุกเฉิน ${p.name}!`, 'urgent');
+          p.bubble = { text: '🚨 ส่งต่อ ICU ด่วน!', timer: 4 };
+          state.safety = Math.max(10, state.safety - 10);
+          state.errorsHappened += 1;
+          playSfx('alert');
+          logEvent(`⚠️ สัญญาณชีพ ${p.name} ทรุดลง! ต้องรีบส่งต่อ ICU (-Safety)`, 'urgent');
         }
       }
 
       if (p.state === 'walking_to_wait') {
-        if (moveEntityAlongPath(p, simDt, p.isEmergency ? 3.2 : 2.3)) p.state = 'waiting';
+        if (moveEntityAlongPath(p, simDt, p.esi === 'red' ? 3.1 : 2.3)) p.state = 'waiting';
       } else if (p.state === 'moving_to_station') {
-        if (moveEntityAlongPath(p, simDt, p.isEmergency ? 3.4 : 2.5)) p.state = 'in_treatment';
+        if (moveEntityAlongPath(p, simDt, p.esi === 'red' ? 3.3 : 2.5)) p.state = 'in_treatment';
       } else if (p.state === 'leaving') {
-        if (moveEntityAlongPath(p, simDt, 2.6)) {
+        if (moveEntityAlongPath(p, simDt, 2.7)) {
           patients.splice(i, 1);
           updateQueueUI();
         }
@@ -787,7 +784,6 @@
     const p2 = gridToScreen(gx + 1, gy);
     const p3 = gridToScreen(gx + 1, gy + 1);
     const p4 = gridToScreen(gx, gy + 1);
-
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
     ctx.lineTo(p2.x, p2.y);
@@ -827,7 +823,6 @@
     const w = 7 * camera.zoom;
     const h = 13 * camera.zoom;
     const cy = sy - 54 * camera.zoom + bob;
-
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(sx, cy - h);
@@ -862,14 +857,6 @@
       ctx.stroke();
     }
 
-    if (!isStaff && ent.isEmergency) {
-      ctx.beginPath();
-      ctx.ellipse(pos.x, pos.y + 2 * z, 15 * z, 8 * z, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
     const bodyY = pos.y - bob;
     ctx.fillStyle = isStaff ? ent.coat : ent.shirt;
     ctx.strokeStyle = '#1e3a4c';
@@ -898,17 +885,27 @@
     ctx.font = `600 ${Math.max(10, Math.round(11 * z))}px Prompt, sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillStyle = isStaff ? '#0f293a' : '#475569';
-    ctx.fillText(ent.name, pos.x, pos.y + 16 * z);
+    ctx.fillText(ent.name.split(' ')[0], pos.x, pos.y + 16 * z);
+
+    // Patient Vital Stability Bar
+    if (!isStaff && ent.state !== 'leaving') {
+      const bw = 30 * z;
+      const bh = 4 * z;
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(pos.x - bw / 2, bodyY - 48 * z, bw, bh);
+      ctx.fillStyle = ent.stability > 60 ? '#10b981' : ent.stability > 30 ? '#f59e0b' : '#ef4444';
+      ctx.fillRect(pos.x - bw / 2, bodyY - 48 * z, bw * Math.max(0, ent.stability / 100), bh);
+    }
 
     if (isStaff && ent.id === state.selectedStaffId) {
-      const avgNeed = (ent.needs.energy + ent.needs.hunger + ent.needs.mood) / 3;
+      const avgNeed = (ent.needs.energy + ent.needs.focus + ent.needs.calm) / 3;
       const pColor = avgNeed > 60 ? '#38c172' : avgNeed > 35 ? '#f59e0b' : '#ef4444';
       drawPlumbob(pos.x, bodyY, pColor);
     }
 
     if (ent.bubble) {
       const bx = pos.x;
-      const by = bodyY - (isStaff && ent.id === state.selectedStaffId ? 76 : 56) * z;
+      const by = bodyY - (isStaff && ent.id === state.selectedStaffId ? 76 : 58) * z;
       ctx.font = `500 ${Math.max(10, Math.round(11 * z))}px Prompt, sans-serif`;
       const textW = ctx.measureText(ent.bubble.text).width + 14;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
@@ -923,11 +920,10 @@
     }
   }
 
-  function drawObject(obj, ghost = false) {
+  function drawObject(obj) {
     const pos = gridToScreen(obj.gx + 0.5, obj.gy + 0.5);
     const z = camera.zoom;
     ctx.save();
-    if (ghost) ctx.globalAlpha = 0.6;
     ctx.fillStyle = obj.color;
     ctx.strokeStyle = 'rgba(15, 35, 50, 0.35)';
     ctx.lineWidth = 1.5;
@@ -935,7 +931,6 @@
     ctx.roundRect(pos.x - 16 * z, pos.y - 20 * z, 32 * z, 22 * z, 6 * z);
     ctx.fill();
     ctx.stroke();
-
     ctx.font = `${Math.round(18 * z)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -956,13 +951,7 @@
     if (state.hoverTile) {
       const { gx, gy } = state.hoverTile;
       if (gx >= 0 && gy >= 0 && gx < GRID_W && gy < GRID_H) {
-        const canPlace = !blockedTiles.has(`${gx},${gy}`);
-        if (state.buildItem) {
-          drawIsoTile(gx, gy, canPlace ? 'rgba(45, 156, 219, 0.35)' : 'rgba(239, 68, 68, 0.35)', canPlace ? '#2d9cdb' : '#ef4444');
-          if (canPlace) drawObject({ ...state.buildItem, gx, gy }, true);
-        } else {
-          drawIsoTile(gx, gy, 'rgba(56, 193, 114, 0.25)', '#38c172');
-        }
+        drawIsoTile(gx, gy, 'rgba(56, 193, 114, 0.25)', '#38c172');
       }
     }
 
@@ -1011,84 +1000,7 @@
     ctx.restore();
   }
 
-  // UI Sync & Drawers
-  function renderShopDrawer() {
-    const grid = document.getElementById('shop-items');
-    grid.innerHTML = '';
-    SHOP_CATALOG.forEach((item) => {
-      const btn = document.createElement('button');
-      btn.className = `drawer-item ${state.buildItem && state.buildItem.id === item.id ? 'selected' : ''}`;
-      btn.innerHTML = `
-        <span class="drawer-item-icon">${item.icon}</span>
-        <div>
-          <div class="drawer-item-title">${item.name}</div>
-          <div class="drawer-item-sub">฿${item.price}</div>
-        </div>
-      `;
-      btn.onclick = () => {
-        state.buildItem = state.buildItem && state.buildItem.id === item.id ? null : item;
-        renderShopDrawer();
-      };
-      grid.appendChild(btn);
-    });
-  }
-
-  function renderHireDrawer() {
-    const grid = document.getElementById('hire-items');
-    grid.innerHTML = '';
-    HIRE_CATALOG.forEach((h) => {
-      const btn = document.createElement('button');
-      btn.className = 'drawer-item';
-      btn.innerHTML = `
-        <span class="drawer-item-icon">${h.emoji}</span>
-        <div>
-          <div class="drawer-item-title">${h.roleTitle}</div>
-          <div class="drawer-item-sub">จ้าง ฿${h.price}</div>
-        </div>
-      `;
-      btn.onclick = () => {
-        if (state.money < h.price) {
-          playSfx('alert');
-          logEvent(`งบประมาณไม่พอจ้าง ${h.roleTitle} (ต้องการ ฿${h.price})`, 'warn');
-          return;
-        }
-        state.money -= h.price;
-        const name = h.names[Math.floor(Math.random() * h.names.length)];
-        const newStaff = {
-          id: `staff_${state.staffCounter++}`,
-          name,
-          role: h.role,
-          roleTitle: h.roleTitle,
-          emoji: h.emoji,
-          shirt: h.shirt,
-          coat: h.coat,
-          hair: '#3a2b25',
-          gx: 2 + Math.floor(Math.random() * 4),
-          gy: 6,
-          level: 1,
-          xp: 0,
-          needs: { energy: 95, hunger: 90, mood: 95, social: 90 },
-          freeWill: true,
-          state: 'idle',
-          actionLabel: 'เพิ่งเริ่มงาน! พร้อมช่วยทีม',
-          path: [],
-          bubble: { text: '👋 สวัสดีครับ/ค่ะ!', timer: 4 },
-          workTimer: 0,
-          targetPatientId: null,
-          walkPhase: 0,
-        };
-        staffList.push(newStaff);
-        state.selectedStaffId = newStaff.id;
-        playSfx('levelup');
-        logEvent(`ต้อนรับสมาชิกใหม่: ${name} (${h.roleTitle})`, 'good');
-        document.getElementById('hire-drawer').classList.add('hidden');
-        document.getElementById('btn-toggle-hire').classList.remove('active');
-        updateHUD();
-      };
-      grid.appendChild(btn);
-    });
-  }
-
+  // UI Sync
   function renderRoster() {
     const bar = document.getElementById('staff-roster');
     bar.innerHTML = '';
@@ -1113,24 +1025,24 @@
     const list = document.getElementById('patient-queue-list');
     if (!list) return;
     if (patients.length === 0) {
-      list.innerHTML = '<div style="font-size:12px;color:#64748b;">ยังไม่มีผู้ป่วยรอคิว...</div>';
+      list.innerHTML = '<div style="font-size:12px;color:#64748b;">ยังไม่มีผู้ป่วยรอคิวใน ER...</div>';
       return;
     }
-    const roleIcons = { nurse: '🩺', doctor: '👩‍⚕️', mt: '🔬', pt: '🦴', pharmacist: '💊', dietitian: '🥗' };
+    const roleIcons = { nurse: '🩺', doctor: '👩‍⚕️', mt: '🔬', radtech: '🩻', pharmacist: '💊' };
     list.innerHTML = patients
       .map((p) => {
         const stepsHtml = p.steps
           .map((st, idx) => {
             const style = idx < p.stepIndex ? 'opacity:0.4;text-decoration:line-through;' : idx === p.stepIndex ? 'font-weight:700;background:#e0f2fe;border-radius:4px;padding:0 3px;' : 'opacity:0.75;';
-            return `<span style="${style}">${roleIcons[st] || '🏥'}</span>`;
+            return `<span style="${style}">${roleIcons[st]}</span>`;
           })
           .join(' → ');
-        const emgTag = p.isEmergency ? `<span style="color:#ef4444;font-weight:700;">⏱${Math.max(0, Math.ceil(p.emergencyTimer))}s</span>` : `<span style="color:#10b981;">฿${p.reward}</span>`;
+        const stabColor = p.stability > 60 ? '#10b981' : p.stability > 30 ? '#f59e0b' : '#ef4444';
         return `
-          <div class="queue-item ${p.isEmergency ? 'emergency' : ''}">
+          <div class="queue-item esi-${p.esi}">
             <div class="queue-item-top">
               <span>${p.icon} ${p.name}</span>
-              ${emgTag}
+              <span style="color:${stabColor};">💓 ${Math.max(0, Math.round(p.stability))}%</span>
             </div>
             <div class="queue-item-sub">${p.diagnosis}</div>
             <div class="queue-item-sub">${stepsHtml}</div>
@@ -1148,14 +1060,19 @@
   }
 
   function updateHUD() {
-    document.getElementById('stat-money').textContent = `฿${state.money.toLocaleString()}`;
+    const avgTs = Math.round((state.teamstepps.leadership + state.teamstepps.communication + state.teamstepps.monitoring + state.teamstepps.support) / 4);
+    document.getElementById('stat-safety').textContent = `${Math.round(state.safety)}%`;
     document.getElementById('stat-cured').textContent = `${state.cured} เคส`;
-    document.getElementById('stat-teamwork').textContent = `${state.teamwork}%`;
+    document.getElementById('stat-teamstepps').textContent = `${avgTs}`;
     document.getElementById('stat-patients').textContent = `${patients.length} คน`;
+
+    document.getElementById('ts-lead').textContent = state.teamstepps.leadership;
+    document.getElementById('ts-comm').textContent = state.teamstepps.communication;
+    document.getElementById('ts-sit').textContent = state.teamstepps.monitoring;
+    document.getElementById('ts-sup').textContent = state.teamstepps.support;
 
     const hh = String(Math.floor(state.minutes / 60) % 24).padStart(2, '0');
     const mm = String(Math.floor(state.minutes % 60)).padStart(2, '0');
-    document.getElementById('game-day').textContent = `วันที่ ${state.day}`;
     document.getElementById('game-time').textContent = `${hh}:${mm}`;
 
     const staff = staffList.find((s) => s.id === state.selectedStaffId);
@@ -1168,8 +1085,8 @@
       document.getElementById('toggle-freewill').checked = staff.freeWill;
 
       setNeedBar('need-energy', staff.needs.energy);
-      setNeedBar('need-hunger', staff.needs.hunger);
-      setNeedBar('need-mood', staff.needs.mood);
+      setNeedBar('need-focus', staff.needs.focus);
+      setNeedBar('need-calm', staff.needs.calm);
       setNeedBar('need-social', staff.needs.social);
 
       const cmds = document.getElementById('sim-quick-cmds');
@@ -1178,11 +1095,22 @@
       if (station) {
         const b = document.createElement('button');
         b.className = 'quick-cmd-btn';
-        b.textContent = `${station.icon} ไปประจำจุด`;
+        b.textContent = `${station.icon} ไปจุดปฏิบัติงาน`;
         b.onclick = () => commandUseObject(staff, station);
         cmds.appendChild(b);
       }
-      ['coffee_machine', 'snack_fridge', 'sofa'].forEach((oid) => {
+      const sbarBtn = document.createElement('button');
+      sbarBtn.className = 'quick-cmd-btn';
+      sbarBtn.textContent = '📣 Call-Out / SBAR';
+      sbarBtn.onclick = () => {
+        staff.bubble = { text: '📣 SBAR พร้อม!', timer: 3 };
+        addTeamStepps('communication', 2);
+        playSfx('select');
+        logEvent(`${staff.name} ทำ Call-Out สื่อสารสถานะกับทีม`, 'info');
+      };
+      cmds.appendChild(sbarBtn);
+
+      ['coffee_machine', 'sofa'].forEach((oid) => {
         const obj = OBJECTS.find((o) => o.id === oid);
         if (!obj) return;
         const b = document.createElement('button');
@@ -1220,14 +1148,6 @@
     state.hoverTile = { gx, gy };
 
     const tooltip = document.getElementById('hover-tooltip');
-    if (state.buildItem) {
-      tooltip.textContent = `วาง ${state.buildItem.icon} ${state.buildItem.name} (฿${state.buildItem.price})`;
-      tooltip.style.left = `${e.clientX + 14}px`;
-      tooltip.style.top = `${e.clientY + 14}px`;
-      tooltip.classList.remove('hidden');
-      return;
-    }
-
     const hoveredObj = OBJECTS.find((o) => o.gx === gx && o.gy === gy);
     if (hoveredObj) {
       tooltip.textContent = `${hoveredObj.icon} ${hoveredObj.name} (คลิกเพื่อสั่งใช้งาน)`;
@@ -1248,36 +1168,6 @@
     const gx = Math.floor(g.gx);
     const gy = Math.floor(g.gy);
 
-    // Build mode placement
-    if (state.buildItem) {
-      if (gx >= 0 && gy >= 0 && gx < GRID_W && gy < GRID_H && !blockedTiles.has(`${gx},${gy}`)) {
-        if (state.money < state.buildItem.price) {
-          playSfx('alert');
-          logEvent(`งบไม่พอซื้อ ${state.buildItem.name}`, 'warn');
-          return;
-        }
-        state.money -= state.buildItem.price;
-        const placed = {
-          ...state.buildItem,
-          id: `obj_${state.objCounter++}`,
-          gx,
-          gy,
-          standX: Math.max(0, gx),
-          standY: gy + 1 < GRID_H ? gy + 1 : Math.max(0, gy - 1),
-          patX: Math.max(0, gx - 1),
-          patY: gy,
-        };
-        OBJECTS.push(placed);
-        refreshBlockedTiles();
-        playSfx('place');
-        state.floatingTexts.push({ gx, gy, text: `-฿${state.buildItem.price} ${state.buildItem.icon}`, color: '#2d9cdb', life: 1.6 });
-        logEvent(`วาง ${state.buildItem.name} เรียบร้อย`, 'good');
-        updateHUD();
-      }
-      return;
-    }
-
-    // Select staff
     const clickedStaff = staffList.find((s) => {
       const p = gridToScreen(s.gx + 0.5, s.gy + 0.5);
       return Math.hypot(e.clientX - p.x, e.clientY - (p.y - 16 * camera.zoom)) < 22 * camera.zoom;
@@ -1292,7 +1182,6 @@
     const selected = staffList.find((s) => s.id === state.selectedStaffId);
     if (!selected) return;
 
-    // Click object
     const clickedObj = OBJECTS.find((o) => o.gx === gx && o.gy === gy);
     if (clickedObj) {
       commandUseObject(selected, clickedObj);
@@ -1301,7 +1190,6 @@
       return;
     }
 
-    // Walk to tile
     if (gx >= 0 && gy >= 0 && gx < GRID_W && gy < GRID_H && !blockedTiles.has(`${gx},${gy}`)) {
       commandWalk(selected, gx, gy, 'เดินไปยังจุดที่สั่ง');
       updateHUD();
@@ -1323,42 +1211,24 @@
     });
   });
 
+  document.querySelectorAll('.scenario-card').forEach((card) => {
+    card.addEventListener('click', () => startScenario(card.dataset.scenario));
+  });
+
+  document.getElementById('btn-scenarios').addEventListener('click', () => {
+    document.getElementById('scenario-modal').classList.remove('hidden');
+  });
+  document.getElementById('btn-close-scenario').addEventListener('click', () => {
+    document.getElementById('scenario-modal').classList.add('hidden');
+  });
+  document.getElementById('btn-debrief').addEventListener('click', openDebrief);
+  document.getElementById('btn-close-debrief').addEventListener('click', () => {
+    document.getElementById('debrief-modal').classList.add('hidden');
+  });
+
   document.getElementById('toggle-freewill').addEventListener('change', (e) => {
     const s = staffList.find((st) => st.id === state.selectedStaffId);
     if (s) s.freeWill = e.target.checked;
-  });
-
-  document.getElementById('btn-toggle-shop').addEventListener('click', () => {
-    const d = document.getElementById('shop-drawer');
-    const hd = document.getElementById('hire-drawer');
-    hd.classList.add('hidden');
-    document.getElementById('btn-toggle-hire').classList.remove('active');
-    d.classList.toggle('hidden');
-    document.getElementById('btn-toggle-shop').classList.toggle('active', !d.classList.contains('hidden'));
-    if (d.classList.contains('hidden')) state.buildItem = null;
-    renderShopDrawer();
-  });
-
-  document.getElementById('btn-close-shop').addEventListener('click', () => {
-    document.getElementById('shop-drawer').classList.add('hidden');
-    document.getElementById('btn-toggle-shop').classList.remove('active');
-    state.buildItem = null;
-  });
-
-  document.getElementById('btn-toggle-hire').addEventListener('click', () => {
-    const hd = document.getElementById('hire-drawer');
-    const sd = document.getElementById('shop-drawer');
-    sd.classList.add('hidden');
-    document.getElementById('btn-toggle-shop').classList.remove('active');
-    state.buildItem = null;
-    hd.classList.toggle('hidden');
-    document.getElementById('btn-toggle-hire').classList.toggle('active', !hd.classList.contains('hidden'));
-    renderHireDrawer();
-  });
-
-  document.getElementById('btn-close-hire').addEventListener('click', () => {
-    document.getElementById('hire-drawer').classList.add('hidden');
-    document.getElementById('btn-toggle-hire').classList.remove('active');
   });
 
   document.getElementById('btn-toggle-sound').addEventListener('click', (e) => {
@@ -1366,14 +1236,12 @@
     e.currentTarget.textContent = soundEnabled ? '🔊' : '🔇';
   });
 
-  document.getElementById('btn-spawn-patient').addEventListener('click', () => spawnPatient(false));
-  document.getElementById('btn-spawn-emergency').addEventListener('click', () => spawnPatient(true));
+  document.getElementById('btn-spawn-patient').addEventListener('click', spawnPatient);
   document.getElementById('btn-huddle').addEventListener('click', triggerTeamHuddle);
   document.getElementById('btn-center-cam').addEventListener('click', centerCamera);
   document.getElementById('btn-zoom-in').addEventListener('click', () => { camera.zoom = Math.min(1.8, camera.zoom * 1.15); });
   document.getElementById('btn-zoom-out').addEventListener('click', () => { camera.zoom = Math.max(0.55, camera.zoom * 0.87); });
 
-  // Main loop
   let lastTime = performance.now();
   let hudTimer = 0;
 
@@ -1393,8 +1261,8 @@
     requestAnimationFrame(loop);
   }
 
-  logEvent('ยินดีต้อนรับสู่ Hospital Sims! ลองซื้อของตกแต่ง หรือจ้างทีมเพิ่มได้เลย', 'good');
-  spawnPatient(false);
+  logEvent('ยินดีต้อนรับสู่ ER-VIPE Sims! เลือกสถานการณ์เพื่อเริ่มฝึกทีม', 'good');
+  spawnPatient();
   updateHUD();
   requestAnimationFrame(loop);
 })();

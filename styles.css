@@ -1,6 +1,6 @@
 :root {
-  --bg-canvas: #d9e6ec;
-  --panel-bg: rgba(255, 255, 255, 0.92);
+  --bg-canvas: #d6e4ec;
+  --panel-bg: rgba(255, 255, 255, 0.93);
   --panel-border: rgba(24, 65, 92, 0.14);
   --text-main: #183042;
   --text-muted: #5a7284;
@@ -44,7 +44,7 @@ html, body {
 /* Top HUD */
 .top-hud {
   position: absolute;
-  top: 14px;
+  top: 12px;
   left: 16px;
   right: 16px;
   display: flex;
@@ -112,8 +112,8 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 600;
-  font-size: 13.5px;
+  font-weight: 500;
+  font-size: 13px;
 }
 
 .top-actions {
@@ -142,12 +142,6 @@ html, body {
   background: #ffffff;
 }
 
-.pill-btn.active {
-  background: var(--sims-blue);
-  color: #fff;
-  border-color: #1f7bb0;
-}
-
 .pill-btn.icon-only {
   padding: 8px 11px;
 }
@@ -171,7 +165,7 @@ html, body {
   line-height: 1.15;
 }
 
-#game-day {
+#game-shift {
   font-size: 11px;
   color: var(--text-muted);
 }
@@ -195,11 +189,6 @@ html, body {
   padding: 6px 10px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.speed-btn:hover {
-  background: #e2eef4;
 }
 
 .speed-btn.active {
@@ -208,94 +197,33 @@ html, body {
   border-color: var(--sims-green-dark);
 }
 
-/* Floating Drawers (Shop & Hire) */
-.floating-drawer {
+/* TeamSTEPPS 4 Pillars Bar */
+.teamstepps-bar {
   position: absolute;
-  top: 76px;
+  top: 72px;
   left: 16px;
-  width: 380px;
-  max-width: calc(100vw - 32px);
-  background: var(--panel-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--panel-border);
-  border-radius: 18px;
-  padding: 12px 14px;
-  box-shadow: var(--shadow-soft);
-  z-index: 15;
-}
-
-.drawer-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.close-x {
-  border: none;
-  background: #e8eff4;
-  color: var(--text-main);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.drawer-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
+  z-index: 9;
+  flex-wrap: wrap;
 }
 
-.drawer-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #f5f9fc;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  padding: 8px 10px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  transition: all 0.14s ease;
-}
-
-.drawer-item:hover {
-  background: #eaf3f9;
-  transform: translateY(-1px);
-}
-
-.drawer-item.selected {
-  border-color: var(--sims-blue);
-  background: #e3f3fc;
-}
-
-.drawer-item-icon {
-  font-size: 22px;
-}
-
-.drawer-item-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.drawer-item-sub {
-  font-size: 11px;
-  color: var(--sims-green-dark);
-  font-weight: 600;
+.ts-pill {
+  background: rgba(24, 48, 66, 0.85);
+  color: #fff;
+  font-size: 11.5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* Side Panel */
 .side-panel {
   position: absolute;
-  top: 78px;
+  top: 74px;
   right: 16px;
-  width: 290px;
+  width: 300px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -315,7 +243,7 @@ html, body {
 
 .consult-card {
   border: 2px solid var(--sims-amber);
-  background: rgba(255, 251, 235, 0.96);
+  background: rgba(255, 251, 235, 0.97);
   animation: pulseBorder 1.8s infinite;
 }
 
@@ -354,7 +282,6 @@ html, body {
   border-radius: 10px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.12s;
 }
 
 .consult-opt-btn:hover {
@@ -380,37 +307,32 @@ html, body {
   padding: 4px 9px;
   border-radius: 999px;
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.15s;
-}
-
-.mini-action-btn.urgent {
-  background: var(--sims-red);
-}
-
-.mini-action-btn:hover {
-  opacity: 0.92;
-  transform: translateY(-1px);
 }
 
 .queue-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 170px;
+  max-height: 175px;
   overflow-y: auto;
 }
 
 .queue-item {
   background: #f5f9fc;
-  border: 1px solid rgba(24, 65, 92, 0.08);
+  border-left: 4px solid var(--sims-green);
   border-radius: 10px;
   padding: 6px 9px;
   font-size: 12px;
 }
 
-.queue-item.emergency {
+.queue-item.esi-red {
+  border-left-color: var(--sims-red);
   background: #fef2f2;
-  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.queue-item.esi-yellow {
+  border-left-color: var(--sims-amber);
+  background: #fffbeb;
 }
 
 .queue-item-top {
@@ -442,17 +364,130 @@ html, body {
   line-height: 1.35;
 }
 
-.log-entry.good {
-  border-left-color: var(--sims-green);
+.log-entry.good { border-left-color: var(--sims-green); }
+.log-entry.warn { border-left-color: var(--sims-amber); }
+.log-entry.urgent { border-left-color: var(--sims-red); background: #fef2f2; }
+
+/* Modals (Scenario Selector & Debriefing) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 32, 46, 0.58);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
 }
 
-.log-entry.warn {
-  border-left-color: var(--sims-amber);
+.modal-box {
+  width: 780px;
+  max-width: 100%;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 22px 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
-.log-entry.urgent {
-  border-left-color: var(--sims-red);
-  background: #fef2f2;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.modal-header h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+}
+
+.modal-header p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.close-x {
+  border: none;
+  background: #e8eff4;
+  color: var(--text-main);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.scenario-card {
+  border: 2px solid #e2ecf2;
+  background: #f8fbfd;
+  border-radius: 16px;
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.16s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scenario-card:hover {
+  border-color: var(--sims-blue);
+  background: #eef7fc;
+  transform: translateY(-2px);
+}
+
+.scenario-card h3 {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--text-main);
+}
+
+.scenario-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.sc-badge {
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.sc-badge.red { background: var(--sims-red); }
+.sc-badge.amber { background: var(--sims-amber); }
+.sc-badge.blue { background: var(--sims-blue); }
+
+.debrief-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.debrief-card {
+  background: #f6fafc;
+  border: 1px solid #e1ecf2;
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.debrief-card h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
 }
 
 /* Bottom Sims-Style HUD */
@@ -476,8 +511,6 @@ html, body {
 .roster-bar {
   display: flex;
   gap: 6px;
-  max-width: 440px;
-  overflow-x: auto;
   background: var(--panel-bg);
   backdrop-filter: blur(10px);
   border: 1px solid var(--panel-border);
@@ -491,7 +524,7 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 58px;
+  min-width: 60px;
   padding: 6px 4px;
   border-radius: 12px;
   border: 2px solid transparent;
@@ -511,20 +544,13 @@ html, body {
   background: #eafaf1;
 }
 
-.roster-emoji {
-  font-size: 21px;
-  line-height: 1.1;
-}
+.roster-emoji { font-size: 21px; line-height: 1.1; }
 
 .roster-name {
   font-size: 10px;
   font-weight: 600;
   color: var(--text-main);
   margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 54px;
 }
 
 .roster-dot {
@@ -555,7 +581,7 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 74px;
+  min-width: 78px;
 }
 
 .sim-avatar {
@@ -581,10 +607,7 @@ html, body {
   white-space: nowrap;
 }
 
-.sim-info {
-  flex: 1;
-  min-width: 0;
-}
+.sim-info { flex: 1; min-width: 0; }
 
 .sim-name-row {
   display: flex;
@@ -593,11 +616,7 @@ html, body {
   gap: 8px;
 }
 
-.sim-name-row h2 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-}
+.sim-name-row h2 { margin: 0; font-size: 15px; font-weight: 700; }
 
 .level-badge {
   font-size: 11px;
@@ -643,9 +662,7 @@ html, body {
   cursor: pointer;
 }
 
-.quick-cmd-btn:hover {
-  background: #dfeef6;
-}
+.quick-cmd-btn:hover { background: #dfeef6; }
 
 .sim-needs {
   width: 175px;
@@ -654,17 +671,8 @@ html, body {
   gap: 5px;
 }
 
-.need-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.need-label {
-  font-size: 11px;
-  width: 68px;
-  white-space: nowrap;
-}
+.need-row { display: flex; align-items: center; gap: 6px; }
+.need-label { font-size: 11px; width: 68px; white-space: nowrap; }
 
 .need-bar-bg {
   flex: 1;
@@ -681,11 +689,7 @@ html, body {
   transition: width 0.25s ease, background-color 0.25s ease;
 }
 
-.camera-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+.camera-controls { display: flex; flex-direction: column; gap: 6px; }
 
 .cam-btn {
   width: 38px;
@@ -696,10 +700,6 @@ html, body {
   box-shadow: var(--shadow-soft);
   cursor: pointer;
   font-size: 15px;
-}
-
-.cam-btn:hover {
-  background: #ffffff;
 }
 
 .hover-tooltip {
@@ -715,15 +715,10 @@ html, body {
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
 }
 
-.hidden {
-  display: none !important;
-}
+.hidden { display: none !important; }
 
-@media (max-width: 1100px) {
-  .side-panel {
-    display: none;
-  }
-  .bottom-hud {
-    flex-wrap: wrap;
-  }
+@media (max-width: 1050px) {
+  .side-panel, .teamstepps-bar { display: none; }
+  .scenario-grid { grid-template-columns: 1fr; }
+  .debrief-content { grid-template-columns: 1fr; }
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hospital Sims: ทีมสหวิชาชีพโรงพยาบาล</title>
+  <title>ER-VIPE Sims: เกมจำลองห้องฉุกเฉิน สหวิชาชีพ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -13,116 +13,145 @@
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
 
-    <!-- Top HUD: Hospital Stats & Time Controls -->
+    <!-- Top HUD -->
     <header class="top-hud">
       <div class="brand-badge">
         <span class="plumbob-mini">◆</span>
         <div>
-          <div class="brand-title">Hospital Sims</div>
-          <div class="brand-sub">ทีมสหวิชาชีพโรงพยาบาล</div>
+          <div class="brand-title">ER-VIPE Sims</div>
+          <div class="brand-sub" id="scenario-name-badge">จำลองห้องฉุกเฉินสหวิชาชีพ</div>
         </div>
       </div>
 
       <div class="stats-pill">
-        <div class="stat-item" title="งบประมาณโรงพยาบาล">
-          <span class="stat-icon">💰</span>
-          <span id="stat-money">฿12,500</span>
+        <div class="stat-item" title="ความปลอดภัยผู้ป่วย (Patient Safety)">
+          <span class="stat-icon">🛡️</span>
+          <span>Safety: <strong id="stat-safety">100%</strong></span>
         </div>
-        <div class="stat-item" title="ผู้ป่วยที่รักษาหายแล้ว">
+        <div class="stat-item" title="ช่วยชีวิต / รักษาสำเร็จ">
           <span class="stat-icon">💚</span>
           <span id="stat-cured">0 เคส</span>
         </div>
-        <div class="stat-item" title="คะแนนการทำงานร่วมกัน (IPE Teamwork)">
+        <div class="stat-item" title="คะแนน TeamSTEPPS รวม">
           <span class="stat-icon">🤝</span>
-          <span id="stat-teamwork">100%</span>
+          <span>TeamSTEPPS: <strong id="stat-teamstepps">100</strong></span>
         </div>
-        <div class="stat-item" title="ผู้ป่วยในโรงพยาบาลตอนนี้">
-          <span class="stat-icon">🏥</span>
+        <div class="stat-item" title="ผู้ป่วยใน ER ตอนนี้">
+          <span class="stat-icon">🚑</span>
           <span id="stat-patients">0 คน</span>
         </div>
       </div>
 
       <div class="top-actions">
-        <button id="btn-toggle-shop" class="pill-btn" title="โหมดซื้อของตกแต่งโรงพยาบาล">🛠️ ตกแต่ง</button>
-        <button id="btn-toggle-hire" class="pill-btn" title="จ้างบุคลากรสหวิชาชีพเพิ่ม">👩‍⚕️ จ้างทีม</button>
+        <button id="btn-scenarios" class="pill-btn">🎬 สถานการณ์</button>
+        <button id="btn-debrief" class="pill-btn">📊 สรุปผล</button>
         <button id="btn-toggle-sound" class="pill-btn icon-only" title="เปิด/ปิดเสียง">🔊</button>
       </div>
 
       <div class="time-controls">
         <div class="clock-display">
-          <span id="game-day">วันที่ 1</span>
+          <span id="game-shift">เวร ER</span>
           <span id="game-time">08:00</span>
         </div>
         <div class="speed-buttons">
           <button class="speed-btn" data-speed="0" title="หยุดเวลา (Pause)">⏸</button>
-          <button class="speed-btn active" data-speed="1" title="ความเร็วปกติ (1x)">▶</button>
+          <button class="speed-btn active" data-speed="1" title="ปกติ (1x)">▶</button>
           <button class="speed-btn" data-speed="2" title="เร็ว (2x)">▶▶</button>
           <button class="speed-btn" data-speed="3" title="เร็วมาก (3x)">▶▶▶</button>
         </div>
       </div>
     </header>
 
-    <!-- Build / Shop Drawer -->
-    <div id="shop-drawer" class="floating-drawer hidden">
-      <div class="drawer-header">
-        <span>🛠️ ซื้อของและตกแต่งโรงพยาบาล (คลิกเลือกแล้ววางบนพื้น)</span>
-        <button id="btn-close-shop" class="close-x">✕</button>
-      </div>
-      <div id="shop-items" class="drawer-grid"></div>
+    <!-- TeamSTEPPS 4 Pillars Mini Bar -->
+    <div class="teamstepps-bar">
+      <div class="ts-pill">👑 Leadership: <strong id="ts-lead">80</strong></div>
+      <div class="ts-pill">📣 Communication: <strong id="ts-comm">80</strong></div>
+      <div class="ts-pill">👁️ Situation Monitoring: <strong id="ts-sit">80</strong></div>
+      <div class="ts-pill">🤝 Mutual Support: <strong id="ts-sup">80</strong></div>
     </div>
 
-    <!-- Hire Staff Drawer -->
-    <div id="hire-drawer" class="floating-drawer hidden">
-      <div class="drawer-header">
-        <span>👩‍⚕️ จ้างทีมสหวิชาชีพเพิ่ม</span>
-        <button id="btn-close-hire" class="close-x">✕</button>
-      </div>
-      <div id="hire-items" class="drawer-grid"></div>
-    </div>
-
-    <!-- Right Floating Panel: Consult Alert, Queue & Activity Log -->
+    <!-- Right Floating Panel -->
     <aside class="side-panel">
-      <div id="consult-card" class="panel-card consult-card hidden">
+      <div id="teamstepps-card" class="panel-card consult-card hidden">
         <div class="panel-header">
-          <span>⚡ ปรึกษาเคสสหวิชาชีพ!</span>
-          <span id="consult-timer" class="badge-urgent">ด่วน</span>
+          <span id="ts-card-title">📣 เหตุการณ์ TeamSTEPPS!</span>
+          <span class="badge-urgent">Soft Skills</span>
         </div>
-        <div id="consult-question" class="consult-question"></div>
-        <div id="consult-options" class="consult-options"></div>
+        <div id="ts-card-question" class="consult-question"></div>
+        <div id="ts-card-options" class="consult-options"></div>
       </div>
 
       <div class="panel-card">
         <div class="panel-header">
-          <span>📋 คิวผู้ป่วย & การส่งต่อ</span>
-          <div style="display:flex;gap:4px;">
-            <button id="btn-spawn-emergency" class="mini-action-btn urgent" title="เรียกเคสฉุกเฉิน">+ 🚑</button>
-            <button id="btn-spawn-patient" class="mini-action-btn" title="รับผู้ป่วยใหม่ทันที">+ รับเคส</button>
-          </div>
+          <span>🚨 คิวคัดกรอง ER (ESI Triage)</span>
+          <button id="btn-spawn-patient" class="mini-action-btn">+ รับเคส ER</button>
         </div>
         <div id="patient-queue-list" class="queue-list"></div>
       </div>
 
       <div class="panel-card">
         <div class="panel-header">
-          <span>💬 บันทึกเหตุการณ์</span>
-          <button id="btn-huddle" class="mini-action-btn" title="เรียกทีมปรึกษาเคส">🤝 ประชุมทีม</button>
+          <span>💬 การสื่อสารในทีม (SBAR / Call-Out)</span>
+          <button id="btn-huddle" class="mini-action-btn" title="เรียกประชุม Brief/Huddle">🤝 Brief ทีม</button>
         </div>
         <div id="event-log" class="event-log"></div>
       </div>
     </aside>
 
-    <!-- Context Tooltip / Hover Info -->
+    <!-- Tooltip -->
     <div id="hover-tooltip" class="hover-tooltip hidden"></div>
+
+    <!-- Scenario Selector Modal -->
+    <div id="scenario-modal" class="modal-backdrop">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div>
+            <h2>🚑 ER-VIPE Sims: เลือกสถานการณ์ห้องฉุกเฉิน</h2>
+            <p>ฝึกการทำงานเป็นทีม 5 สหวิชาชีพ (แพทย์ • พยาบาล • เภสัชกร • นักรังสีเทคนิค • นักเทคนิคการแพทย์) ตามแนวคิด TeamSTEPPS</p>
+          </div>
+          <button id="btn-close-scenario" class="close-x">✕</button>
+        </div>
+        <div class="scenario-grid">
+          <button class="scenario-card" data-scenario="stemi">
+            <div class="sc-badge red">วิกฤตหัวใจ</div>
+            <h3>💓 กู้ชีพผู้ป่วยหัวใจขาดเลือด (STEMI)</h3>
+            <p>แข่งกับเวลา Golden Period! ประสานพยาบาลคัดกรอง แพทย์สั่ง ECG/Lab นักเทคนิคการแพทย์ตรวจ Troponin และเภสัชกรเตรียมยา</p>
+          </button>
+          <button class="scenario-card" data-scenario="overcrowded">
+            <div class="sc-badge amber">ความดันสูง</div>
+            <h3>🏥 ห้องฉุกเฉินคับคั่ง (Overcrowded ER)</h3>
+            <p>ผู้ป่วยหลั่งไหลเข้ามามาก ทั้งสีแดง-เหลือง-เขียว ต้องจัดลำดับ ESI Triage เฝ้าระวังสัญญาณชีพ และลด Human Error</p>
+          </button>
+          <button class="scenario-card" data-scenario="trauma">
+            <div class="sc-badge blue">สหวิชาชีพครบทีม</div>
+            <h3>🦴 อุบัติเหตุผู้สูงอายุ (Geriatric Trauma)</h3>
+            <p>ผู้สูงอายุหกล้มศีรษะกระแทก ต้องประสานนักรังสีเทคนิคทำ CT/X-Ray, เช็คยาละลายลิ่มเลือดกับเภสัชกร และตรวจ Lab ด่วน</p>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Debriefing Modal -->
+    <div id="debrief-modal" class="modal-backdrop hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div>
+            <h2>📊 สรุปผลการฝึกทีมสหวิชาชีพ (ER-VIPE Debriefing)</h2>
+            <p>ประเมินสมรรถนะ Non-Technical Skills ตามหลัก TeamSTEPPS และความปลอดภัยของผู้ป่วย</p>
+          </div>
+          <button id="btn-close-debrief" class="close-x">✕</button>
+        </div>
+        <div id="debrief-content" class="debrief-content"></div>
+      </div>
+    </div>
 
     <!-- Bottom Sims-Style HUD -->
     <footer class="bottom-hud">
-      <!-- Staff Roster Quick Switch -->
       <div class="roster-bar" id="staff-roster"></div>
 
-      <!-- Selected Character Inspector (The Sims Control Panel) -->
       <div class="sim-inspector" id="sim-inspector">
         <div class="sim-avatar-wrap">
-          <div class="sim-avatar" id="selected-avatar">👨‍⚕️</div>
+          <div class="sim-avatar" id="selected-avatar">👩‍⚕️</div>
           <div class="sim-role-tag" id="selected-role">เลือกตัวละคร</div>
         </div>
 
@@ -138,7 +167,7 @@
             </label>
           </div>
           <div class="sim-action-text" id="selected-action">
-            คลิกที่ตัวละครในแผนที่ หรือเลือกจากแถบด้านซ้าย จากนั้นคลิกพื้นเพื่อเดิน หรือคลิกอุปกรณ์เพื่อสั่งงาน
+            คลิกตัวละครเพื่อสั่งเดิน ตรวจคนไข้ หรือสื่อสาร SBAR กับทีม
           </div>
           <div class="sim-quick-cmds" id="sim-quick-cmds"></div>
         </div>
@@ -149,21 +178,20 @@
             <div class="need-bar-bg"><div class="need-bar" id="need-energy" style="width: 100%"></div></div>
           </div>
           <div class="need-row">
-            <span class="need-label">🍔 ความอิ่ม</span>
-            <div class="need-bar-bg"><div class="need-bar" id="need-hunger" style="width: 100%"></div></div>
+            <span class="need-label">🧠 สมาธิ</span>
+            <div class="need-bar-bg"><div class="need-bar" id="need-focus" style="width: 100%"></div></div>
           </div>
           <div class="need-row">
-            <span class="need-label">😊 อารมณ์</span>
-            <div class="need-bar-bg"><div class="need-bar" id="need-mood" style="width: 100%"></div></div>
+            <span class="need-label">😌 ความนิ่ง</span>
+            <div class="need-bar-bg"><div class="need-bar" id="need-calm" style="width: 100%"></div></div>
           </div>
           <div class="need-row">
-            <span class="need-label">💬 สังคม</span>
+            <span class="need-label">💬 สื่อสาร</span>
             <div class="need-bar-bg"><div class="need-bar" id="need-social" style="width: 100%"></div></div>
           </div>
         </div>
       </div>
 
-      <!-- Camera & Help Controls -->
       <div class="camera-controls">
         <button id="btn-center-cam" class="cam-btn" title="จัดกลางหน้าจอ">🎯</button>
         <button id="btn-zoom-in" class="cam-btn" title="ซูมเข้า">➕</button>
