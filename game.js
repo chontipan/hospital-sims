@@ -613,10 +613,10 @@
     }
 
     for (const staff of staffList) {
-      staff.needs.energy = Math.max(5, staff.needs.energy - simDt * 0.36);
-      staff.needs.focus = Math.max(5, staff.needs.focus - simDt * 0.34);
-      staff.needs.calm = Math.max(10, staff.needs.calm - simDt * 0.25);
-      staff.needs.social = Math.max(10, staff.needs.social - simDt * 0.28);
+      staff.needs.energy = Math.max(20, staff.needs.energy - simDt * 0.16);
+      staff.needs.focus = Math.max(20, staff.needs.focus - simDt * 0.15);
+      staff.needs.calm = Math.max(25, staff.needs.calm - simDt * 0.12);
+      staff.needs.social = Math.max(25, staff.needs.social - simDt * 0.14);
 
       const spdMult = 1 + (staff.level - 1) * 0.12;
       if (staff.bubble) {
@@ -659,7 +659,7 @@
             staff.state = 'idle';
           } else if (pat.state === 'in_treatment' || pat.path.length === 0) {
             staff.state = 'treating';
-            staff.workTimer = Math.max(1.8, 3.4 / spdMult);
+            staff.workTimer = Math.max(1.4, 2.4 / spdMult);
             staff.actionLabel = `${staff.targetObject.actionText}: ${pat.name}`;
             staff.bubble = { text: staff.targetObject.icon, timer: staff.workTimer };
             pat.state = 'in_treatment';
@@ -736,8 +736,8 @@
         p.bubble.timer -= simDt;
         if (p.bubble.timer <= 0) p.bubble = null;
       }
-      if (p.state !== 'leaving' && p.state !== 'in_treatment') {
-        p.stability -= simDt * p.decay;
+      if (p.state !== 'leaving' && p.state !== 'in_treatment' && !state.activeTsEvent) {
+        p.stability -= simDt * p.decay * 0.42;
         if (p.stability <= 0) {
           p.state = 'leaving';
           p.path = findPath(p.gx, p.gy, 9, 12);
@@ -1030,7 +1030,7 @@
           .join(' → ');
         const stabColor = p.stability > 60 ? '#10b981' : p.stability > 30 ? '#f59e0b' : '#ef4444';
         return `
-          <div class="queue-item esi-${p.esi}">
+          <div class="queue-item esi-${p.esi}" data-pat="${p.id}" style="cursor:pointer;" title="คลิกเพื่อส่งบุคลากรที่รับผิดชอบไปรับเคสนี้ทันที">
             <div class="queue-item-top">
               <span>${p.icon} ${p.name}</span>
               <span style="color:${stabColor};">💓 ${Math.max(0, Math.round(p.stability))}%</span>
@@ -1041,6 +1041,21 @@
         `;
       })
       .join('');
+
+    list.querySelectorAll('.queue-item').forEach((el) => {
+      el.addEventListener('click', () => {
+        const pat = patients.find((p) => p.id === el.dataset.pat);
+        if (!pat || pat.assignedStaffId || pat.state === 'leaving') return;
+        const neededRole = pat.steps[pat.stepIndex];
+        const staff = staffList.find((s) => s.role === neededRole && s.state === 'idle') || staffList.find((s) => s.role === neededRole);
+        if (staff) {
+          state.selectedStaffId = staff.id;
+          assignStaffToPatient(staff, pat);
+          playSfx('select');
+          updateHUD();
+        }
+      });
+    });
   }
 
   function setNeedBar(id, val) {

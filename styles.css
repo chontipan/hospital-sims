@@ -218,6 +218,11 @@ html, body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
+.guide-pill {
+  background: rgba(16, 185, 129, 0.92);
+  font-weight: 500;
+}
+
 /* Side Panel */
 .side-panel {
   position: absolute;
