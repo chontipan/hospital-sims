@@ -42,6 +42,12 @@
         </div>
       </div>
 
+      <div class="top-actions">
+        <button id="btn-toggle-shop" class="pill-btn" title="โหมดซื้อของตกแต่งโรงพยาบาล">🛠️ ตกแต่ง</button>
+        <button id="btn-toggle-hire" class="pill-btn" title="จ้างบุคลากรสหวิชาชีพเพิ่ม">👩‍⚕️ จ้างทีม</button>
+        <button id="btn-toggle-sound" class="pill-btn icon-only" title="เปิด/ปิดเสียง">🔊</button>
+      </div>
+
       <div class="time-controls">
         <div class="clock-display">
           <span id="game-day">วันที่ 1</span>
@@ -56,12 +62,42 @@
       </div>
     </header>
 
-    <!-- Right Floating Panel: Quick Actions & Activity Log -->
+    <!-- Build / Shop Drawer -->
+    <div id="shop-drawer" class="floating-drawer hidden">
+      <div class="drawer-header">
+        <span>🛠️ ซื้อของและตกแต่งโรงพยาบาล (คลิกเลือกแล้ววางบนพื้น)</span>
+        <button id="btn-close-shop" class="close-x">✕</button>
+      </div>
+      <div id="shop-items" class="drawer-grid"></div>
+    </div>
+
+    <!-- Hire Staff Drawer -->
+    <div id="hire-drawer" class="floating-drawer hidden">
+      <div class="drawer-header">
+        <span>👩‍⚕️ จ้างทีมสหวิชาชีพเพิ่ม</span>
+        <button id="btn-close-hire" class="close-x">✕</button>
+      </div>
+      <div id="hire-items" class="drawer-grid"></div>
+    </div>
+
+    <!-- Right Floating Panel: Consult Alert, Queue & Activity Log -->
     <aside class="side-panel">
+      <div id="consult-card" class="panel-card consult-card hidden">
+        <div class="panel-header">
+          <span>⚡ ปรึกษาเคสสหวิชาชีพ!</span>
+          <span id="consult-timer" class="badge-urgent">ด่วน</span>
+        </div>
+        <div id="consult-question" class="consult-question"></div>
+        <div id="consult-options" class="consult-options"></div>
+      </div>
+
       <div class="panel-card">
         <div class="panel-header">
-          <span>📋 คิวผู้ป่วย & การประสานงาน</span>
-          <button id="btn-spawn-patient" class="mini-action-btn" title="รับผู้ป่วยใหม่ทันที">+ รับเคส</button>
+          <span>📋 คิวผู้ป่วย & การส่งต่อ</span>
+          <div style="display:flex;gap:4px;">
+            <button id="btn-spawn-emergency" class="mini-action-btn urgent" title="เรียกเคสฉุกเฉิน">+ 🚑</button>
+            <button id="btn-spawn-patient" class="mini-action-btn" title="รับผู้ป่วยใหม่ทันที">+ รับเคส</button>
+          </div>
         </div>
         <div id="patient-queue-list" class="queue-list"></div>
       </div>
@@ -92,7 +128,10 @@
 
         <div class="sim-info">
           <div class="sim-name-row">
-            <h2 id="selected-name">คลิกตัวละครเพื่อควบคุม</h2>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <h2 id="selected-name">คลิกตัวละครเพื่อควบคุม</h2>
+              <span id="selected-level" class="level-badge">Lv.1</span>
+            </div>
             <label class="toggle-autonomy" title="ให้ตัวละครเดินและทำงานอัตโนมัติแบบ The Sims">
               <input type="checkbox" id="toggle-freewill" checked />
               <span>อิสระ (Free Will)</span>

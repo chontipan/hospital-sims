@@ -50,9 +50,10 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   pointer-events: none;
   z-index: 10;
+  flex-wrap: wrap;
 }
 
 .top-hud > * {
@@ -98,12 +99,12 @@ html, body {
 .stats-pill {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
   background: var(--panel-bg);
   backdrop-filter: blur(10px);
   border: 1px solid var(--panel-border);
   border-radius: 999px;
-  padding: 8px 20px;
+  padding: 8px 18px;
   box-shadow: var(--shadow-soft);
 }
 
@@ -112,7 +113,43 @@ html, body {
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-btn {
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.15s ease;
+}
+
+.pill-btn:hover {
+  transform: translateY(-1px);
+  background: #ffffff;
+}
+
+.pill-btn.active {
+  background: var(--sims-blue);
+  color: #fff;
+  border-color: #1f7bb0;
+}
+
+.pill-btn.icon-only {
+  padding: 8px 11px;
 }
 
 .time-controls {
@@ -171,12 +208,94 @@ html, body {
   border-color: var(--sims-green-dark);
 }
 
+/* Floating Drawers (Shop & Hire) */
+.floating-drawer {
+  position: absolute;
+  top: 76px;
+  left: 16px;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  background: var(--panel-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow-soft);
+  z-index: 15;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.close-x {
+  border: none;
+  background: #e8eff4;
+  color: var(--text-main);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.drawer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f9fc;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.14s ease;
+}
+
+.drawer-item:hover {
+  background: #eaf3f9;
+  transform: translateY(-1px);
+}
+
+.drawer-item.selected {
+  border-color: var(--sims-blue);
+  background: #e3f3fc;
+}
+
+.drawer-item-icon {
+  font-size: 22px;
+}
+
+.drawer-item-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.drawer-item-sub {
+  font-size: 11px;
+  color: var(--sims-green-dark);
+  font-weight: 600;
+}
+
 /* Side Panel */
 .side-panel {
   position: absolute;
   top: 78px;
   right: 16px;
-  width: 280px;
+  width: 290px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -192,6 +311,54 @@ html, body {
   border-radius: 16px;
   padding: 10px 12px;
   box-shadow: var(--shadow-soft);
+}
+
+.consult-card {
+  border: 2px solid var(--sims-amber);
+  background: rgba(255, 251, 235, 0.96);
+  animation: pulseBorder 1.8s infinite;
+}
+
+@keyframes pulseBorder {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+}
+
+.badge-urgent {
+  background: var(--sims-amber);
+  color: #fff;
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.consult-question {
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.consult-options {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.consult-opt-btn {
+  border: 1px solid rgba(24, 65, 92, 0.16);
+  background: #fff;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 11.5px;
+  padding: 6px 9px;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.consult-opt-btn:hover {
+  background: #fef3c7;
 }
 
 .panel-header {
@@ -216,6 +383,10 @@ html, body {
   transition: transform 0.12s ease, opacity 0.15s;
 }
 
+.mini-action-btn.urgent {
+  background: var(--sims-red);
+}
+
 .mini-action-btn:hover {
   opacity: 0.92;
   transform: translateY(-1px);
@@ -235,6 +406,11 @@ html, body {
   border-radius: 10px;
   padding: 6px 9px;
   font-size: 12px;
+}
+
+.queue-item.emergency {
+  background: #fef2f2;
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
 .queue-item-top {
@@ -274,6 +450,11 @@ html, body {
   border-left-color: var(--sims-amber);
 }
 
+.log-entry.urgent {
+  border-left-color: var(--sims-red);
+  background: #fef2f2;
+}
+
 /* Bottom Sims-Style HUD */
 .bottom-hud {
   position: absolute;
@@ -294,7 +475,9 @@ html, body {
 
 .roster-bar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  max-width: 440px;
+  overflow-x: auto;
   background: var(--panel-bg);
   backdrop-filter: blur(10px);
   border: 1px solid var(--panel-border);
@@ -308,7 +491,7 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 62px;
+  min-width: 58px;
   padding: 6px 4px;
   border-radius: 12px;
   border: 2px solid transparent;
@@ -329,34 +512,34 @@ html, body {
 }
 
 .roster-emoji {
-  font-size: 22px;
+  font-size: 21px;
   line-height: 1.1;
 }
 
 .roster-name {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text-main);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 56px;
+  max-width: 54px;
 }
 
 .roster-dot {
   position: absolute;
   top: 5px;
   right: 5px;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--sims-green);
 }
 
 .sim-inspector {
   flex: 1;
-  max-width: 690px;
+  max-width: 680px;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -414,6 +597,15 @@ html, body {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
+}
+
+.level-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #b45309;
+  padding: 2px 7px;
+  border-radius: 999px;
 }
 
 .toggle-autonomy {
@@ -524,10 +716,10 @@ html, body {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
-@media (max-width: 1060px) {
+@media (max-width: 1100px) {
   .side-panel {
     display: none;
   }
