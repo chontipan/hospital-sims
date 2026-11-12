@@ -836,9 +836,10 @@
     const walking = ent.path && ent.path.length > 0;
     const bob = walking ? Math.abs(Math.sin(ent.walkPhase || 0)) * 4 * z : 0;
 
+    // Shadow
     ctx.beginPath();
     ctx.ellipse(pos.x, pos.y + 2 * z, 11 * z, 6 * z, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(15, 35, 50, 0.2)';
+    ctx.fillStyle = 'rgba(15, 35, 50, 0.22)';
     ctx.fill();
 
     if (isStaff && ent.id === state.selectedStaffId) {
@@ -850,31 +851,53 @@
     }
 
     const bodyY = pos.y - bob;
-    ctx.fillStyle = isStaff ? ent.coat : ent.shirt;
+
+    // Legs
+    const legSwing = walking ? Math.sin(ent.walkPhase || 0) * 3 * z : 0;
+    ctx.fillStyle = isStaff ? '#0f4c5c' : '#94a3b8';
+    ctx.fillRect(pos.x - 5 * z, bodyY - 6 * z + legSwing * 0.5, 4 * z, 7 * z);
+    ctx.fillRect(pos.x + 1 * z, bodyY - 6 * z - legSwing * 0.5, 4 * z, 7 * z);
+
+    // Surgical Gown / Scrubs or Patient Gown
+    ctx.fillStyle = isStaff ? ent.shirt : '#bae6fd';
     ctx.strokeStyle = '#1e3a4c';
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.3;
     ctx.beginPath();
-    ctx.roundRect(pos.x - 8 * z, bodyY - 26 * z, 16 * z, 22 * z, 6 * z);
+    ctx.roundRect(pos.x - 8.5 * z, bodyY - 26 * z, 17 * z, 21 * z, 5 * z);
     ctx.fill();
     ctx.stroke();
 
-    if (isStaff) {
-      ctx.fillStyle = ent.shirt;
-      ctx.fillRect(pos.x - 3 * z, bodyY - 24 * z, 6 * z, 12 * z);
+    // Sterile gown apron for Surgeon & Scrub Nurse
+    if (isStaff && (ent.role === 'surgeon' || ent.role === 'scrub')) {
+      ctx.fillStyle = '#5eead4';
+      ctx.fillRect(pos.x - 6 * z, bodyY - 24 * z, 12 * z, 16 * z);
     }
 
+    // Head
     ctx.beginPath();
-    ctx.arc(pos.x, bodyY - 33 * z, 8.5 * z, 0, Math.PI * 2);
+    ctx.arc(pos.x, bodyY - 33 * z, 8.2 * z, 0, Math.PI * 2);
     ctx.fillStyle = '#fde2c8';
     ctx.fill();
     ctx.stroke();
 
-    // OR Surgical Cap for OR staff
+    // Surgical Mask for OR Staff
+    if (isStaff) {
+      ctx.fillStyle = '#e0f2fe';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.roundRect(pos.x - 5.5 * z, bodyY - 32 * z, 11 * z, 5.5 * z, 2 * z);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Surgical Cap
     ctx.beginPath();
-    ctx.arc(pos.x, bodyY - 35 * z, 8.8 * z, Math.PI, Math.PI * 2);
-    ctx.fillStyle = isStaff ? ent.shirt : (ent.hair || '#3a2b25');
+    ctx.arc(pos.x, bodyY - 35.5 * z, 8.6 * z, Math.PI, Math.PI * 2);
+    ctx.fillStyle = isStaff ? ent.shirt : '#7dd3fc';
     ctx.fill();
 
+    // Name tag
     ctx.font = `600 ${Math.max(10, Math.round(11 * z))}px Prompt, sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillStyle = isStaff ? '#0f293a' : '#475569';
@@ -916,17 +939,139 @@
     const pos = gridToScreen(obj.gx + 0.5, obj.gy + 0.5);
     const z = camera.zoom;
     ctx.save();
-    ctx.fillStyle = obj.color;
-    ctx.strokeStyle = 'rgba(15, 35, 50, 0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.roundRect(pos.x - 16 * z, pos.y - 20 * z, 32 * z, 22 * z, 6 * z);
-    ctx.fill();
-    ctx.stroke();
-    ctx.font = `${Math.round(18 * z)}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(obj.icon, pos.x, pos.y - 10 * z);
+
+    if (obj.id === 'or_table') {
+      // Operating Table base + mattress + sterile blue-green surgical drape
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(pos.x - 8 * z, pos.y - 6 * z, 16 * z, 10 * z);
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.roundRect(pos.x - 28 * z, pos.y - 18 * z, 56 * z, 20 * z, 5 * z);
+      ctx.fill();
+      // Sterile surgical drape
+      ctx.fillStyle = '#0d9488';
+      ctx.strokeStyle = '#99f6e4';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.roundRect(pos.x - 24 * z, pos.y - 21 * z, 48 * z, 16 * z, 4 * z);
+      ctx.fill();
+      ctx.stroke();
+      // Overhead Surgical Shadowless Lamp + light beam
+      const lampY = pos.y - 62 * z;
+      const grad = ctx.createRadialGradient(pos.x, pos.y - 12 * z, 4 * z, pos.x, pos.y - 12 * z, 38 * z);
+      grad.addColorStop(0, 'rgba(254, 249, 195, 0.55)');
+      grad.addColorStop(1, 'rgba(254, 249, 195, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(pos.x, pos.y - 12 * z, 36 * z, 18 * z, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2.5 * z;
+      ctx.beginPath();
+      ctx.moveTo(pos.x + 18 * z, lampY - 16 * z);
+      ctx.lineTo(pos.x, lampY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(pos.x, lampY, 18 * z, 9 * z, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.ellipse(pos.x, lampY + 2 * z, 11 * z, 5 * z, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (obj.id === 'anesthesia_machine') {
+      // Anesthesia Workstation + live ECG/SpO2 monitor
+      ctx.fillStyle = '#e2e8f0';
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.roundRect(pos.x - 15 * z, pos.y - 28 * z, 30 * z, 28 * z, 4 * z);
+      ctx.fill();
+      ctx.stroke();
+      // Monitor screen
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(pos.x - 12 * z, pos.y - 44 * z, 24 * z, 16 * z);
+      // Animated ECG line
+      const phase = (performance.now() / 180) % 10;
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(pos.x - 10 * z, pos.y - 36 * z);
+      ctx.lineTo(pos.x - 3 * z, pos.y - 36 * z);
+      ctx.lineTo(pos.x - 1 * z, pos.y - 42 * z + (phase > 5 ? 2 * z : 0));
+      ctx.lineTo(pos.x + 2 * z, pos.y - 31 * z);
+      ctx.lineTo(pos.x + 5 * z, pos.y - 36 * z);
+      ctx.lineTo(pos.x + 10 * z, pos.y - 36 * z);
+      ctx.stroke();
+      // Gas cylinders
+      ctx.fillStyle = '#0ea5e9';
+      ctx.fillRect(pos.x - 11 * z, pos.y - 22 * z, 6 * z, 16 * z);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(pos.x - 3 * z, pos.y - 22 * z, 6 * z, 16 * z);
+    } else if (obj.id === 'scrub_table') {
+      // Sterile Mayo Stand + Surgical Instruments
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(pos.x - 2 * z, pos.y - 16 * z, 4 * z, 16 * z);
+      ctx.fillStyle = '#0284c7';
+      ctx.strokeStyle = '#bae6fd';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(pos.x - 20 * z, pos.y - 24 * z, 40 * z, 14 * z, 3 * z);
+      ctx.fill();
+      ctx.stroke();
+      // Metallic instruments & gauze
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(pos.x - 14 * z, pos.y - 21 * z, 12 * z, 2 * z);
+      ctx.fillRect(pos.x - 14 * z, pos.y - 17 * z, 10 * z, 2 * z);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(pos.x + 4 * z, pos.y - 22 * z, 10 * z, 8 * z);
+    } else if (obj.id === 'blood_bank') {
+      // Blood Bank & Patho Fridge
+      ctx.fillStyle = '#f8fafc';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.roundRect(pos.x - 15 * z, pos.y - 38 * z, 30 * z, 38 * z, 4 * z);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#dbeafe';
+      ctx.fillRect(pos.x - 11 * z, pos.y - 34 * z, 22 * z, 20 * z);
+      // Blood bags inside
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(pos.x - 8 * z, pos.y - 30 * z, 6 * z, 9 * z);
+      ctx.fillRect(pos.x + 1 * z, pos.y - 30 * z, 6 * z, 9 * z);
+    } else if (obj.id === 'pacu_bed' || obj.isWaitSeat) {
+      // Hospital Bed / Stretcher
+      ctx.fillStyle = '#cbd5e1';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(pos.x - 22 * z, pos.y - 16 * z, 44 * z, 16 * z, 4 * z);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(pos.x - 18 * z, pos.y - 14 * z, 10 * z, 10 * z);
+      ctx.fillStyle = obj.id === 'pacu_bed' ? '#f472b6' : '#93c5fd';
+      ctx.fillRect(pos.x - 6 * z, pos.y - 14 * z, 24 * z, 11 * z);
+    } else {
+      // Other stations (Coffee, Fridge, Sofa, Sign-In Desk)
+      ctx.fillStyle = obj.color;
+      ctx.strokeStyle = 'rgba(15, 35, 50, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(pos.x - 16 * z, pos.y - 20 * z, 32 * z, 22 * z, 6 * z);
+      ctx.fill();
+      ctx.stroke();
+      ctx.font = `${Math.round(18 * z)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(obj.icon, pos.x, pos.y - 10 * z);
+    }
     ctx.restore();
   }
 
@@ -938,6 +1083,26 @@
         const room = ROOMS.find((r) => x >= r.x1 && x <= r.x2 && y >= r.y1 && y <= r.y2) || ROOMS[3];
         drawIsoTile(x, y, room.floor, room.border);
       }
+    }
+
+    // Sterile Zone Border inside OR-1 (x: 7..10, y: 1..3)
+    {
+      const p1 = gridToScreen(7, 1);
+      const p2 = gridToScreen(11, 1);
+      const p3 = gridToScreen(11, 4);
+      const p4 = gridToScreen(7, 4);
+      ctx.save();
+      ctx.setLineDash([6, 5]);
+      ctx.strokeStyle = '#0d9488';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.lineTo(p4.x, p4.y);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
     }
 
     if (state.hoverTile) {
