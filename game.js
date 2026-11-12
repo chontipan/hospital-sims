@@ -1394,6 +1394,12 @@
   document.getElementById('btn-close-debrief').addEventListener('click', () => {
     document.getElementById('debrief-modal').classList.add('hidden');
   });
+  document.getElementById('btn-howto').addEventListener('click', () => {
+    document.getElementById('howto-modal').classList.remove('hidden');
+  });
+  document.getElementById('btn-close-howto').addEventListener('click', () => {
+    document.getElementById('howto-modal').classList.add('hidden');
+  });
 
   document.getElementById('toggle-freewill').addEventListener('change', (e) => {
     const s = staffList.find((st) => st.id === state.selectedStaffId);
