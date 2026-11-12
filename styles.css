@@ -1,0 +1,537 @@
+:root {
+  --bg-canvas: #d9e6ec;
+  --panel-bg: rgba(255, 255, 255, 0.92);
+  --panel-border: rgba(24, 65, 92, 0.14);
+  --text-main: #183042;
+  --text-muted: #5a7284;
+  --sims-green: #38c172;
+  --sims-green-dark: #259c57;
+  --sims-blue: #2d9cdb;
+  --sims-amber: #f59e0b;
+  --sims-red: #ef4444;
+  --shadow-soft: 0 10px 30px rgba(15, 38, 56, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+  user-select: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Prompt', system-ui, -apple-system, sans-serif;
+  background: var(--bg-canvas);
+  color: var(--text-main);
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+
+/* Top HUD */
+.top-hud {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.top-hud > * {
+  pointer-events: auto;
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 8px 14px;
+  box-shadow: var(--shadow-soft);
+}
+
+.plumbob-mini {
+  color: var(--sims-green);
+  font-size: 22px;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(56, 193, 114, 0.45);
+  animation: floatMini 2.2s ease-in-out infinite;
+}
+
+@keyframes floatMini {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.brand-title {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.stats-pill {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 8px 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.time-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 7px 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.clock-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.15;
+}
+
+#game-day {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+#game-time {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.speed-btn {
+  border: 1px solid var(--panel-border);
+  background: #f1f6f9;
+  color: var(--text-main);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.speed-btn:hover {
+  background: #e2eef4;
+}
+
+.speed-btn.active {
+  background: var(--sims-green);
+  color: #fff;
+  border-color: var(--sims-green-dark);
+}
+
+/* Side Panel */
+.side-panel {
+  position: absolute;
+  top: 78px;
+  right: 16px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.panel-card {
+  pointer-events: auto;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.mini-action-btn {
+  border: none;
+  background: var(--sims-blue);
+  color: #fff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s;
+}
+
+.mini-action-btn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 170px;
+  overflow-y: auto;
+}
+
+.queue-item {
+  background: #f5f9fc;
+  border: 1px solid rgba(24, 65, 92, 0.08);
+  border-radius: 10px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
+.queue-item-top {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.queue-item-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.event-log {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 145px;
+  overflow-y: auto;
+  font-size: 11.5px;
+}
+
+.log-entry {
+  padding: 4px 7px;
+  border-radius: 8px;
+  background: #f6fafc;
+  border-left: 3px solid var(--sims-blue);
+  line-height: 1.35;
+}
+
+.log-entry.good {
+  border-left-color: var(--sims-green);
+}
+
+.log-entry.warn {
+  border-left-color: var(--sims-amber);
+}
+
+/* Bottom Sims-Style HUD */
+.bottom-hud {
+  position: absolute;
+  bottom: 14px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.bottom-hud > * {
+  pointer-events: auto;
+}
+
+.roster-bar {
+  display: flex;
+  gap: 8px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  padding: 8px;
+  box-shadow: var(--shadow-soft);
+}
+
+.roster-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 62px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: #f3f7fa;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.roster-btn:hover {
+  background: #e7f1f7;
+  transform: translateY(-2px);
+}
+
+.roster-btn.active {
+  border-color: var(--sims-green);
+  background: #eafaf1;
+}
+
+.roster-emoji {
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.roster-name {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 56px;
+}
+
+.roster-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sims-green);
+}
+
+.sim-inspector {
+  flex: 1;
+  max-width: 690px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 10px 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.sim-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 74px;
+}
+
+.sim-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e0f4ff, #d6f8e5);
+  border: 3px solid var(--sims-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+.sim-role-tag {
+  margin-top: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: #e6f0f6;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.sim-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sim-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sim-name-row h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.toggle-autonomy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.sim-action-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sim-quick-cmds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.quick-cmd-btn {
+  border: 1px solid var(--panel-border);
+  background: #f2f7fa;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.quick-cmd-btn:hover {
+  background: #dfeef6;
+}
+
+.sim-needs {
+  width: 175px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.need-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.need-label {
+  font-size: 11px;
+  width: 68px;
+  white-space: nowrap;
+}
+
+.need-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: #e4edf2;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.need-bar {
+  height: 100%;
+  background: var(--sims-green);
+  border-radius: 999px;
+  transition: width 0.25s ease, background-color 0.25s ease;
+}
+
+.camera-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cam-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.cam-btn:hover {
+  background: #ffffff;
+}
+
+.hover-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(20, 38, 52, 0.92);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  z-index: 20;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 1060px) {
+  .side-panel {
+    display: none;
+  }
+  .bottom-hud {
+    flex-wrap: wrap;
+  }
+}

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hospital Sims: ทีมสหวิชาชีพโรงพยาบาล</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Top HUD: Hospital Stats & Time Controls -->
+    <header class="top-hud">
+      <div class="brand-badge">
+        <span class="plumbob-mini">◆</span>
+        <div>
+          <div class="brand-title">Hospital Sims</div>
+          <div class="brand-sub">ทีมสหวิชาชีพโรงพยาบาล</div>
+        </div>
+      </div>
+
+      <div class="stats-pill">
+        <div class="stat-item" title="งบประมาณโรงพยาบาล">
+          <span class="stat-icon">💰</span>
+          <span id="stat-money">฿12,500</span>
+        </div>
+        <div class="stat-item" title="ผู้ป่วยที่รักษาหายแล้ว">
+          <span class="stat-icon">💚</span>
+          <span id="stat-cured">0 เคส</span>
+        </div>
+        <div class="stat-item" title="คะแนนการทำงานร่วมกัน (IPE Teamwork)">
+          <span class="stat-icon">🤝</span>
+          <span id="stat-teamwork">100%</span>
+        </div>
+        <div class="stat-item" title="ผู้ป่วยในโรงพยาบาลตอนนี้">
+          <span class="stat-icon">🏥</span>
+          <span id="stat-patients">0 คน</span>
+        </div>
+      </div>
+
+      <div class="time-controls">
+        <div class="clock-display">
+          <span id="game-day">วันที่ 1</span>
+          <span id="game-time">08:00</span>
+        </div>
+        <div class="speed-buttons">
+          <button class="speed-btn" data-speed="0" title="หยุดเวลา (Pause)">⏸</button>
+          <button class="speed-btn active" data-speed="1" title="ความเร็วปกติ (1x)">▶</button>
+          <button class="speed-btn" data-speed="2" title="เร็ว (2x)">▶▶</button>
+          <button class="speed-btn" data-speed="3" title="เร็วมาก (3x)">▶▶▶</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Right Floating Panel: Quick Actions & Activity Log -->
+    <aside class="side-panel">
+      <div class="panel-card">
+        <div class="panel-header">
+          <span>📋 คิวผู้ป่วย & การประสานงาน</span>
+          <button id="btn-spawn-patient" class="mini-action-btn" title="รับผู้ป่วยใหม่ทันที">+ รับเคส</button>
+        </div>
+        <div id="patient-queue-list" class="queue-list"></div>
+      </div>
+
+      <div class="panel-card">
+        <div class="panel-header">
+          <span>💬 บันทึกเหตุการณ์</span>
+          <button id="btn-huddle" class="mini-action-btn" title="เรียกทีมปรึกษาเคส">🤝 ประชุมทีม</button>
+        </div>
+        <div id="event-log" class="event-log"></div>
+      </div>
+    </aside>
+
+    <!-- Context Tooltip / Hover Info -->
+    <div id="hover-tooltip" class="hover-tooltip hidden"></div>
+
+    <!-- Bottom Sims-Style HUD -->
+    <footer class="bottom-hud">
+      <!-- Staff Roster Quick Switch -->
+      <div class="roster-bar" id="staff-roster"></div>
+
+      <!-- Selected Character Inspector (The Sims Control Panel) -->
+      <div class="sim-inspector" id="sim-inspector">
+        <div class="sim-avatar-wrap">
+          <div class="sim-avatar" id="selected-avatar">👨‍⚕️</div>
+          <div class="sim-role-tag" id="selected-role">เลือกตัวละคร</div>
+        </div>
+
+        <div class="sim-info">
+          <div class="sim-name-row">
+            <h2 id="selected-name">คลิกตัวละครเพื่อควบคุม</h2>
+            <label class="toggle-autonomy" title="ให้ตัวละครเดินและทำงานอัตโนมัติแบบ The Sims">
+              <input type="checkbox" id="toggle-freewill" checked />
+              <span>อิสระ (Free Will)</span>
+            </label>
+          </div>
+          <div class="sim-action-text" id="selected-action">
+            คลิกที่ตัวละครในแผนที่ หรือเลือกจากแถบด้านซ้าย จากนั้นคลิกพื้นเพื่อเดิน หรือคลิกอุปกรณ์เพื่อสั่งงาน
+          </div>
+          <div class="sim-quick-cmds" id="sim-quick-cmds"></div>
+        </div>
+
+        <div class="sim-needs" id="selected-needs">
+          <div class="need-row">
+            <span class="need-label">⚡ พลังงาน</span>
+            <div class="need-bar-bg"><div class="need-bar" id="need-energy" style="width: 100%"></div></div>
+          </div>
+          <div class="need-row">
+            <span class="need-label">🍔 ความอิ่ม</span>
+            <div class="need-bar-bg"><div class="need-bar" id="need-hunger" style="width: 100%"></div></div>
+          </div>
+          <div class="need-row">
+            <span class="need-label">😊 อารมณ์</span>
+            <div class="need-bar-bg"><div class="need-bar" id="need-mood" style="width: 100%"></div></div>
+          </div>
+          <div class="need-row">
+            <span class="need-label">💬 สังคม</span>
+            <div class="need-bar-bg"><div class="need-bar" id="need-social" style="width: 100%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Camera & Help Controls -->
+      <div class="camera-controls">
+        <button id="btn-center-cam" class="cam-btn" title="จัดกลางหน้าจอ">🎯</button>
+        <button id="btn-zoom-in" class="cam-btn" title="ซูมเข้า">➕</button>
+        <button id="btn-zoom-out" class="cam-btn" title="ซูมออก">➖</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
